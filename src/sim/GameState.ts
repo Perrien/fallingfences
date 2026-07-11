@@ -34,6 +34,7 @@ export class GameState {
   ledFlashCounter = 0;
   manualSweepCount = 0;
   combinationRevealed = false;
+  lifetimeProbeCount = 0; // running total of recorded readings; never decremented
 
   private positionEngine: WheelPositionEngine;
   private parkedWheelPositions = new Map<number, number>();
@@ -246,6 +247,7 @@ export class GameState {
       });
       const trueValue = side === 'lcp' ? trueReading.lcp : trueReading.rcp;
       this.pruneReadings(wheelIdx, snappedPos, side, trueValue);
+      this.lifetimeProbeCount += 1;
     }
   }
 

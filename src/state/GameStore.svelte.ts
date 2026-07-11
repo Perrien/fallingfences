@@ -6,6 +6,7 @@ import type { LockProfile } from '../models/LockProfile';
 import type { Combination } from '../models/Combination';
 import type { ProbeReading } from '../models/LockSession';
 import type { ContactPointReading } from '../sim/ContactPointCalculator';
+import { SolveScoreCalculator, type SolveScoreResult } from '../sim/SolveScoring';
 
 export class GameStore {
   private game: GameState;
@@ -19,6 +20,8 @@ export class GameStore {
   ledFlashCounter = $state(0);
   autoReadingEnabled = $state(false);
   measurementNoiseEnabled = $state(true);
+  solveScore = $state<SolveScoreResult | null>(null);
+  efficiency = $state(0);
 
   readonly profile: LockProfile;
   readonly difficultyRating: number;
@@ -37,6 +40,12 @@ export class GameStore {
   get gatePositions(): number[] {
     return this.game.session.combination.gatePositions;
   }
+  get manualSweepCount(): number {
+    return this.game.manualSweepCount;
+  }
+  get lifetimeProbeCount(): number {
+    return this.game.lifetimeProbeCount;
+  }
 
   private sync() {
     this.dialPosition = this.game.dialPosition;
@@ -46,6 +55,11 @@ export class GameStore {
     this.probeHistory = [...this.game.session.probeHistory];
     this.wheelPositions = this.game.wheels.map((w) => w.currentPosition);
     this.ledFlashCounter = this.game.ledFlashCounter;
+    // Compute the solve score once, the moment the lock opens.
+    if (this.game.solvePhase === 'solved' && this.solveScore === null) {
+      this.efficiency = this.game.lifetimeProbeCount / (this.profile.wheelCount * this.profile.numberRange);
+      this.solveScore = SolveScoreCalculator.compute(this.difficultyRating, this.efficiency, this.game.manualSweepCount);
+    }
   }
 
   rotate(delta: number) {

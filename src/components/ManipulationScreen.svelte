@@ -2,11 +2,13 @@
   import type { GameStore } from '../state/GameStore.svelte';
   import Dial from './Dial.svelte';
   import ContactGraph from './ContactGraph.svelte';
+  import SolveSheet from './SolveSheet.svelte';
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
   let showGates = $state(false); // debug aid until the contact graph lands
   let showWidth = $state(false);
+  let sheetDismissed = $state(false);
 
   const phaseLabel = $derived(
     store.solvePhase === 'solved' ? 'OPEN' : store.solvePhase === 'noseDropped' ? 'NOSE DROPPED' : 'MANIPULATING',
@@ -89,6 +91,19 @@
     <p class="muted">Then dial into the contact area (nose drops) and turn right to retract the bolt.</p>
   </details>
 </main>
+
+{#if store.solveScore && !sheetDismissed}
+  <SolveSheet
+    result={store.solveScore}
+    efficiency={store.efficiency}
+    manualSweepCount={store.manualSweepCount}
+    lifetimeProbeCount={store.lifetimeProbeCount}
+    gatePositions={store.gatePositions}
+    difficulty={store.difficultyRating}
+    onNewLock={onExit}
+    onClose={() => (sheetDismissed = true)}
+  />
+{/if}
 
 <style>
   main {
