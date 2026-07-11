@@ -6,7 +6,7 @@
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
-  let showGates = $state(false); // debug aid until the contact graph lands
+  let showGates = $state(false); // debug aid until isolation lands
   let showWidth = $state(false);
   let sheetDismissed = $state(false);
 
@@ -24,72 +24,80 @@
     </div>
   </header>
 
-  <div class="stage">
-    <Dial
-      numberRange={store.numberRange}
-      dialPosition={store.dialPosition}
-      contactAreaCenter={store.profile.contactAreaCenter}
-      contactAreaWidth={store.profile.contactAreaWidth}
-      onRotate={(d) => store.rotate(d)}
-    />
+  <div class="body">
+    <!-- Play pane: dial + manipulation controls -->
+    <section class="play">
+      <div class="stage">
+        <Dial
+          numberRange={store.numberRange}
+          dialPosition={store.dialPosition}
+          contactAreaCenter={store.profile.contactAreaCenter}
+          contactAreaWidth={store.profile.contactAreaWidth}
+          onRotate={(d) => store.rotate(d)}
+        />
 
-    <div class={`phase phase-${store.solvePhase}`}>{phaseLabel}</div>
+        <div class={`phase phase-${store.solvePhase}`}>{phaseLabel}</div>
 
-    {#if store.solvePhase === 'noseDropped'}
-      <div class="bolt">
-        <div class="bolt-fill" style={`width:${Math.round(store.boltTravelProgress * 100)}%`}></div>
+        {#if store.solvePhase === 'noseDropped'}
+          <div class="bolt">
+            <div class="bolt-fill" style={`width:${Math.round(store.boltTravelProgress * 100)}%`}></div>
+          </div>
+          <p class="hint">Gates aligned — turn right to retract the bolt.</p>
+        {:else if store.solvePhase === 'solved'}
+          <p class="hint open">Cracked! 🎉</p>
+        {/if}
       </div>
-      <p class="hint">Gates aligned — turn right to retract the bolt.</p>
-    {:else if store.solvePhase === 'solved'}
-      <p class="hint open">Cracked! 🎉</p>
-    {/if}
-  </div>
 
-  <div class="controls">
-    <button class="primary" onclick={() => store.probeNow()}>Probe</button>
-    <button onclick={() => store.sweepAll(0, 2, store.numberRange - 1)}>Sweep all</button>
-    <button onclick={() => store.erase()}>Clear</button>
-  </div>
+      <div class="controls">
+        <button class="primary" onclick={() => store.probeNow()}>Probe</button>
+        <button onclick={() => store.sweepAll(0, 2, store.numberRange - 1)}>Sweep all</button>
+        <button onclick={() => store.erase()}>Clear</button>
+      </div>
 
-  <div class="readout">
-    {#if store.currentReading}
-      <span>RCP <b>{store.currentReading.rcp.toFixed(2)}</b></span>
-      <span>LCP <b>{store.currentReading.lcp.toFixed(2)}</b></span>
-      <span>Width <b>{store.currentReading.width.toFixed(2)}</b></span>
-    {:else}
-      <span class="muted">No reading yet — probe or dial into the contact area.</span>
-    {/if}
-  </div>
+      <div class="readout">
+        {#if store.currentReading}
+          <span>RCP <b>{store.currentReading.rcp.toFixed(2)}</b></span>
+          <span>LCP <b>{store.currentReading.lcp.toFixed(2)}</b></span>
+          <span>Width <b>{store.currentReading.width.toFixed(2)}</b></span>
+        {:else}
+          <span class="muted">No reading yet — probe or dial into the contact area.</span>
+        {/if}
+      </div>
 
-  <div class="graph">
-    <div class="graph-head">
-      <span>Contact graph</span>
-      <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
-    </div>
-    <ContactGraph
-      probeHistory={store.probeHistory}
-      numberRange={store.numberRange}
-      contactAreaCenter={store.profile.contactAreaCenter}
-      contactAreaWidth={store.profile.contactAreaWidth}
-      {showWidth}
-    />
-    <p class="graph-hint muted">
-      The dip in RCP (and peak in LCP) marks a gate — the tick + number flags the extreme.
-    </p>
-  </div>
+      <div class="toggles">
+        <label><input type="checkbox" bind:checked={store.autoReadingEnabled} onchange={(e) => store.setAutoReading(e.currentTarget.checked)} /> Auto-read on sweep</label>
+        <label><input type="checkbox" bind:checked={store.measurementNoiseEnabled} onchange={(e) => store.setMeasurementNoise(e.currentTarget.checked)} /> Measurement noise</label>
+        <span class="muted">{store.probeHistory.length} readings</span>
+      </div>
 
-  <div class="toggles">
-    <label><input type="checkbox" bind:checked={store.autoReadingEnabled} onchange={(e) => store.setAutoReading(e.currentTarget.checked)} /> Auto-read on sweep</label>
-    <label><input type="checkbox" bind:checked={store.measurementNoiseEnabled} onchange={(e) => store.setMeasurementNoise(e.currentTarget.checked)} /> Measurement noise</label>
-    <span class="muted">{store.probeHistory.length} readings</span>
-  </div>
+      <details class="debug" bind:open={showGates}>
+        <summary>Debug: show gate positions</summary>
+        <p>Gates: {store.gatePositions.map((g) => g.toFixed(0)).join(' · ')}</p>
+        <button onclick={() => store.debugAlignToGates()}>Align wheels to gates</button>
+        <p class="muted">Then dial into the contact area (nose drops) and turn right to retract the bolt.</p>
+      </details>
+    </section>
 
-  <details class="debug" bind:open={showGates}>
-    <summary>Debug: show gate positions</summary>
-    <p>Gates: {store.gatePositions.map((g) => g.toFixed(0)).join(' · ')}</p>
-    <button onclick={() => store.debugAlignToGates()}>Align wheels to gates</button>
-    <p class="muted">Then dial into the contact area (nose drops) and turn right to retract the bolt.</p>
-  </details>
+    <!-- Analysis pane: the contact graph -->
+    <section class="analysis">
+      <div class="graph">
+        <div class="graph-head">
+          <span>Contact graph</span>
+          <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
+        </div>
+        <ContactGraph
+          probeHistory={store.probeHistory}
+          numberRange={store.numberRange}
+          contactAreaCenter={store.profile.contactAreaCenter}
+          contactAreaWidth={store.profile.contactAreaWidth}
+          {showWidth}
+        />
+        <p class="graph-hint muted">
+          The dip in RCP (and peak in LCP) marks a gate — the tick + number flags the extreme.
+        </p>
+      </div>
+    </section>
+  </div>
 </main>
 
 {#if store.solveScore && !sheetDismissed}
@@ -115,7 +123,7 @@
     padding: 1rem;
   }
   header {
-    width: min(96vw, 460px);
+    width: min(96vw, 1040px);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -135,6 +143,38 @@
     font-size: 0.8rem;
     color: #b8a898;
   }
+
+  /* Narrow (phone): single stacked column. Wide (tablet/desktop): two panes. */
+  .body {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .play,
+  .analysis {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  @media (min-width: 900px) {
+    .body {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 2.5rem;
+      max-width: 1040px;
+    }
+    .play,
+    .analysis {
+      flex: 1 1 0;
+      max-width: 500px;
+    }
+  }
+
   .stage {
     display: flex;
     flex-direction: column;
@@ -206,6 +246,7 @@
     font-size: 0.85rem;
     color: #b8a898;
     align-items: center;
+    justify-content: center;
   }
   .toggles label {
     display: flex;
@@ -218,13 +259,15 @@
   .debug {
     font-size: 0.8rem;
     color: #b8a898;
-    max-width: min(96vw, 460px);
+    width: 100%;
+    max-width: 460px;
   }
   .debug summary {
     cursor: pointer;
   }
   .graph {
-    width: min(96vw, 460px);
+    width: 100%;
+    max-width: 560px;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
