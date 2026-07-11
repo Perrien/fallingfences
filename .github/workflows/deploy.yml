@@ -22,9 +22,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
+          node-version: 22
+      # This machine installs from an internal registry mirror (npm.apple.com), so a
+      # committed package-lock.json points at hosts GitHub's runners can't reach — hence
+      # the lockfile is gitignored and CI re-resolves from the public registry here.
+      - run: npm install --registry=https://registry.npmjs.org/
       - run: npm run test        # parity gate — RNG/AngleNormalizer must match the oracle
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3

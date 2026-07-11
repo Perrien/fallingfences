@@ -4,3 +4,8 @@ dev-dist/
 *.local
 .DS_Store
 .vite/
+
+# Generated against the internal Apple registry mirror on this machine — its resolved
+# URLs aren't reachable from GitHub's CI runners, so don't commit it. CI installs fresh
+# from the public registry (see .github/workflows/deploy.yml).
+package-lock.json
