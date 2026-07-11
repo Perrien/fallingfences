@@ -97,4 +97,26 @@ describe('GameState', () => {
     expect(Math.abs(trackedAfter - trackedBefore)).toBeGreaterThan(1);
     expect(g.session.probeHistory.length).toBe(6);
   });
+
+  it('autoProbe isolates the free wheel and restores the others', () => {
+    const g = new GameState(testProfile(), combo);
+    g.measurementNoiseEnabled = false;
+    g.rotate(200); // scramble wheel positions
+    const before = g.wheels.map((w) => w.currentPosition);
+
+    const locked = new Map<number, number>();
+    before.forEach((p, i) => {
+      if (i !== 1) locked.set(i, p); // free wheel = index 1
+    });
+    g.autoProbe(locked, 0, 2, null);
+
+    // readings all recorded against the free wheel
+    expect(g.session.probeHistory.length).toBeGreaterThan(0);
+    expect(g.session.probeHistory.every((r) => r.wheelIndex === 1)).toBe(true);
+
+    // the parked wheels are back where they were
+    const after = g.wheels.map((w) => w.currentPosition);
+    expect(after[0]).toBeCloseTo(before[0], 6);
+    expect(after[2]).toBeCloseTo(before[2], 6);
+  });
 });

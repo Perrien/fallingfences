@@ -162,6 +162,49 @@ export class GameState {
     this.wheelConfiguration = { kind: 'allMoving' };
   }
 
+  unparkWheel(index: number): void {
+    this.parkedWheelPositions.delete(index);
+    this.updateWheelConfiguration();
+  }
+
+  // Auto-probe: park each wheel in `locked` at its position, sweep the remaining (free)
+  // wheels across [startAt, stopAt], recording against the first free wheel, then restore
+  // the prior park configuration. Port of SafeSimulator.autoProbe — the isolation workhorse.
+  autoProbe(locked: Map<number, number>, startAt: number, step: number, stopAt: number | null = null): void {
+    if (step <= 0) return;
+    const savedParked = new Map(this.parkedWheelPositions);
+    const savedPositions = this.wheels.map((w) => w.currentPosition);
+
+    for (let i = 0; i < this.wheels.length; i++) {
+      const pos = locked.get(i);
+      if (pos !== undefined) this.parkWheel(i, pos);
+      else this.unparkWheel(i);
+    }
+
+    // Record against the first free wheel in display order (highest internal index).
+    let recordingIdx: number | null = null;
+    for (let i = this.wheels.length - 1; i >= 0; i--) {
+      if (!locked.has(i)) {
+        recordingIdx = i;
+        break;
+      }
+    }
+    if (recordingIdx !== null) this.selectedWheelIndex = recordingIdx;
+
+    this.sweepAll(startAt, step, stopAt, recordingIdx, false);
+
+    // restore pre-run state
+    this.parkedWheelPositions = savedParked;
+    for (let i = 0; i < this.wheels.length; i++) {
+      this.wheels[i].currentPosition = savedParked.get(i) ?? savedPositions[i];
+    }
+    this.positionEngine.restoreFromState(
+      this.dialPosition,
+      this.wheels.map((w) => w.currentPosition),
+    );
+    this.updateWheelConfiguration();
+  }
+
   revealCombination(): void {
     this.combinationRevealed = true;
   }

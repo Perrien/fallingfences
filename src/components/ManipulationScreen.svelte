@@ -3,6 +3,7 @@
   import Dial from './Dial.svelte';
   import ContactGraph from './ContactGraph.svelte';
   import SolveSheet from './SolveSheet.svelte';
+  import IsolationPanel from './IsolationPanel.svelte';
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
@@ -69,6 +70,8 @@
         <label><input type="checkbox" bind:checked={store.measurementNoiseEnabled} onchange={(e) => store.setMeasurementNoise(e.currentTarget.checked)} /> Measurement noise</label>
         <span class="muted">{store.probeHistory.length} readings</span>
       </div>
+
+      <IsolationPanel {store} />
 
       <details class="debug" bind:open={showGates}>
         <summary>Debug: show gate positions</summary>

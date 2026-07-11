@@ -22,6 +22,7 @@ export class GameStore {
   measurementNoiseEnabled = $state(true);
   solveScore = $state<SolveScoreResult | null>(null);
   efficiency = $state(0);
+  selectedWheelIndex = $state(0);
 
   readonly profile: LockProfile;
   readonly difficultyRating: number;
@@ -35,6 +36,9 @@ export class GameStore {
 
   get numberRange() {
     return this.profile.numberRange;
+  }
+  get wheelCount(): number {
+    return this.profile.wheelCount;
   }
   // Debug aid until the contact graph lands — the true gate positions.
   get gatePositions(): number[] {
@@ -55,6 +59,7 @@ export class GameStore {
     this.probeHistory = [...this.game.session.probeHistory];
     this.wheelPositions = this.game.wheels.map((w) => w.currentPosition);
     this.ledFlashCounter = this.game.ledFlashCounter;
+    this.selectedWheelIndex = this.game.selectedWheelIndex;
     // Compute the solve score once, the moment the lock opens.
     if (this.game.solvePhase === 'solved' && this.solveScore === null) {
       this.efficiency = this.game.lifetimeProbeCount / (this.profile.wheelCount * this.profile.numberRange);
@@ -72,6 +77,10 @@ export class GameStore {
   }
   sweepAll(start = 0, step = 2, stop: number | null = null) {
     this.game.sweepAll(start, step, stop);
+    this.sync();
+  }
+  autoProbe(locked: Map<number, number>, start = 0, step = 2, stop: number | null = null) {
+    this.game.autoProbe(locked, start, step, stop);
     this.sync();
   }
   erase() {
