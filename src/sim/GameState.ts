@@ -209,6 +209,29 @@ export class GameState {
     this.combinationRevealed = true;
   }
 
+  // Test a deduced combination: guesses[i] is the gate for wheel i. If every wheel is within
+  // gateWidth/2 of its true gate, the lock opens (models successfully dialing it in). Returns
+  // whether it opened; on failure nothing changes (no hint about which wheel was wrong).
+  testCombination(guesses: number[]): boolean {
+    const range = this.profile.numberRange;
+    const tol = this.profile.gateWidth / 2;
+    const ok = this.wheels.every(
+      (w, i) =>
+        guesses[i] !== undefined &&
+        AngleNormalizer.circularDistance(guesses[i], w.gatePosition, range) <= tol,
+    );
+    if (ok) {
+      this.wheels.forEach((w, i) => {
+        w.currentPosition = AngleNormalizer.normalizePosition(guesses[i], range);
+        this.parkedWheelPositions.set(i, w.currentPosition);
+      });
+      this.solvePhase = 'solved';
+      this.session.solvedAt = Date.now();
+      this.updateWheelConfiguration();
+    }
+    return ok;
+  }
+
   eraseProbeHistory(): void {
     this.session.probeHistory = [];
   }

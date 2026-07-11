@@ -83,6 +83,12 @@ export class GameStore {
     this.game.autoProbe(locked, start, step, stop);
     this.sync();
   }
+  // Test a deduced combination — opens the lock if all gates are correct. Returns success.
+  testCombination(guesses: number[]): boolean {
+    const opened = this.game.testCombination(guesses);
+    this.sync();
+    return opened;
+  }
   erase() {
     this.game.eraseProbeHistory();
     this.sync();

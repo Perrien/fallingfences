@@ -4,17 +4,85 @@
   import ContactGraph from './ContactGraph.svelte';
   import SolveSheet from './SolveSheet.svelte';
   import IsolationPanel from './IsolationPanel.svelte';
+  import CombinationEntry from './CombinationEntry.svelte';
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
-  let showGates = $state(false); // debug aid until isolation lands
+  let showGates = $state(false); // debug aid
   let showWidth = $state(false);
   let sheetDismissed = $state(false);
+
+  // Wide (Mac/iPad): graph on top, dial + controls side-by-side below.
+  // Narrow (iPhone): graph on top, tabbed Dial/Controls below.
+  let isWide = $state(false);
+  let tab = $state<'dial' | 'controls'>('dial');
+
+  $effect(() => {
+    const mq = window.matchMedia('(min-width: 900px)');
+    const update = () => (isWide = mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  });
 
   const phaseLabel = $derived(
     store.solvePhase === 'solved' ? 'OPEN' : store.solvePhase === 'noseDropped' ? 'NOSE DROPPED' : 'MANIPULATING',
   );
 </script>
+
+{#snippet dialPane()}
+  <div class="dial-pane">
+    <Dial
+      numberRange={store.numberRange}
+      dialPosition={store.dialPosition}
+      contactAreaCenter={store.profile.contactAreaCenter}
+      contactAreaWidth={store.profile.contactAreaWidth}
+      onRotate={(d) => store.rotate(d)}
+    />
+    <div class={`phase phase-${store.solvePhase}`}>{phaseLabel}</div>
+    {#if store.solvePhase === 'noseDropped'}
+      <div class="bolt"><div class="bolt-fill" style={`width:${Math.round(store.boltTravelProgress * 100)}%`}></div></div>
+      <p class="hint">Gates aligned — turn right to retract the bolt.</p>
+    {:else if store.solvePhase === 'solved'}
+      <p class="hint open">Cracked! 🎉</p>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet controlsPane()}
+  <div class="controls-pane">
+    <div class="controls">
+      <button class="primary" onclick={() => store.probeNow()}>Probe</button>
+      <button onclick={() => store.sweepAll(0, 2, store.numberRange - 1)}>Sweep all</button>
+      <button onclick={() => store.erase()}>Clear</button>
+    </div>
+
+    <div class="readout">
+      {#if store.currentReading}
+        <span>RCP <b>{store.currentReading.rcp.toFixed(2)}</b></span>
+        <span>LCP <b>{store.currentReading.lcp.toFixed(2)}</b></span>
+        <span>Width <b>{store.currentReading.width.toFixed(2)}</b></span>
+      {:else}
+        <span class="muted">No reading yet — probe or dial into the contact area.</span>
+      {/if}
+    </div>
+
+    <div class="toggles">
+      <label><input type="checkbox" bind:checked={store.autoReadingEnabled} onchange={(e) => store.setAutoReading(e.currentTarget.checked)} /> Auto-read on sweep</label>
+      <label><input type="checkbox" bind:checked={store.measurementNoiseEnabled} onchange={(e) => store.setMeasurementNoise(e.currentTarget.checked)} /> Measurement noise</label>
+      <span class="muted">{store.probeHistory.length} readings</span>
+    </div>
+
+    <IsolationPanel {store} />
+    <CombinationEntry {store} />
+
+    <details class="debug" bind:open={showGates}>
+      <summary>Debug: show gate positions</summary>
+      <p>Gates: {store.gatePositions.map((g) => g.toFixed(0)).join(' · ')}</p>
+      <button onclick={() => store.debugAlignToGates()}>Align wheels to gates</button>
+    </details>
+  </div>
+{/snippet}
 
 <main>
   <header>
@@ -25,82 +93,36 @@
     </div>
   </header>
 
-  <div class="body">
-    <!-- Play pane: dial + manipulation controls -->
-    <section class="play">
-      <div class="stage">
-        <Dial
-          numberRange={store.numberRange}
-          dialPosition={store.dialPosition}
-          contactAreaCenter={store.profile.contactAreaCenter}
-          contactAreaWidth={store.profile.contactAreaWidth}
-          onRotate={(d) => store.rotate(d)}
-        />
-
-        <div class={`phase phase-${store.solvePhase}`}>{phaseLabel}</div>
-
-        {#if store.solvePhase === 'noseDropped'}
-          <div class="bolt">
-            <div class="bolt-fill" style={`width:${Math.round(store.boltTravelProgress * 100)}%`}></div>
-          </div>
-          <p class="hint">Gates aligned — turn right to retract the bolt.</p>
-        {:else if store.solvePhase === 'solved'}
-          <p class="hint open">Cracked! 🎉</p>
-        {/if}
-      </div>
-
-      <div class="controls">
-        <button class="primary" onclick={() => store.probeNow()}>Probe</button>
-        <button onclick={() => store.sweepAll(0, 2, store.numberRange - 1)}>Sweep all</button>
-        <button onclick={() => store.erase()}>Clear</button>
-      </div>
-
-      <div class="readout">
-        {#if store.currentReading}
-          <span>RCP <b>{store.currentReading.rcp.toFixed(2)}</b></span>
-          <span>LCP <b>{store.currentReading.lcp.toFixed(2)}</b></span>
-          <span>Width <b>{store.currentReading.width.toFixed(2)}</b></span>
-        {:else}
-          <span class="muted">No reading yet — probe or dial into the contact area.</span>
-        {/if}
-      </div>
-
-      <div class="toggles">
-        <label><input type="checkbox" bind:checked={store.autoReadingEnabled} onchange={(e) => store.setAutoReading(e.currentTarget.checked)} /> Auto-read on sweep</label>
-        <label><input type="checkbox" bind:checked={store.measurementNoiseEnabled} onchange={(e) => store.setMeasurementNoise(e.currentTarget.checked)} /> Measurement noise</label>
-        <span class="muted">{store.probeHistory.length} readings</span>
-      </div>
-
-      <IsolationPanel {store} />
-
-      <details class="debug" bind:open={showGates}>
-        <summary>Debug: show gate positions</summary>
-        <p>Gates: {store.gatePositions.map((g) => g.toFixed(0)).join(' · ')}</p>
-        <button onclick={() => store.debugAlignToGates()}>Align wheels to gates</button>
-        <p class="muted">Then dial into the contact area (nose drops) and turn right to retract the bolt.</p>
-      </details>
-    </section>
-
-    <!-- Analysis pane: the contact graph -->
-    <section class="analysis">
-      <div class="graph">
-        <div class="graph-head">
-          <span>Contact graph</span>
-          <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
-        </div>
-        <ContactGraph
-          probeHistory={store.probeHistory}
-          numberRange={store.numberRange}
-          contactAreaCenter={store.profile.contactAreaCenter}
-          contactAreaWidth={store.profile.contactAreaWidth}
-          {showWidth}
-        />
-        <p class="graph-hint muted">
-          The dip in RCP (and peak in LCP) marks a gate — the tick + number flags the extreme.
-        </p>
-      </div>
-    </section>
+  <div class="graph">
+    <div class="graph-head">
+      <span>Contact graph</span>
+      <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
+    </div>
+    <ContactGraph
+      probeHistory={store.probeHistory}
+      numberRange={store.numberRange}
+      contactAreaCenter={store.profile.contactAreaCenter}
+      contactAreaWidth={store.profile.contactAreaWidth}
+      {showWidth}
+    />
   </div>
+
+  {#if isWide}
+    <div class="wide-body">
+      {@render dialPane()}
+      {@render controlsPane()}
+    </div>
+  {:else}
+    <div class="tabs">
+      <button class:active={tab === 'dial'} onclick={() => (tab = 'dial')}>Dial</button>
+      <button class:active={tab === 'controls'} onclick={() => (tab = 'controls')}>Controls</button>
+    </div>
+    {#if tab === 'dial'}
+      {@render dialPane()}
+    {:else}
+      {@render controlsPane()}
+    {/if}
+  {/if}
 </main>
 
 {#if store.solveScore && !sheetDismissed}
@@ -126,7 +148,7 @@
     padding: 1rem;
   }
   header {
-    width: min(96vw, 1040px);
+    width: min(96vw, 1000px);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -147,43 +169,79 @@
     color: #b8a898;
   }
 
-  /* Narrow (phone): single stacked column. Wide (tablet/desktop): two panes. */
-  .body {
-    width: 100%;
+  /* Graph spans the top at all sizes. */
+  .graph {
+    width: min(96vw, 1000px);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1rem;
+    gap: 0.35rem;
   }
-  .play,
-  .analysis {
-    width: 100%;
+  .graph-head {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    font-size: 0.8rem;
+    color: #b8a898;
   }
-  @media (min-width: 900px) {
-    .body {
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 2.5rem;
-      max-width: 1040px;
-    }
-    .play,
-    .analysis {
-      flex: 1 1 0;
-      max-width: 500px;
-    }
+  .graph-head label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
   }
 
-  .stage {
+  /* Wide: dial bottom-left, controls bottom-right. */
+  .wide-body {
+    width: min(96vw, 1000px);
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .wide-body .dial-pane {
+    flex: 0 0 auto;
+  }
+  .wide-body .controls-pane {
+    flex: 1 1 0;
+    max-width: 520px;
+  }
+
+  .dial-pane {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
   }
+  .controls-pane {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  /* Narrow: tab switcher between Dial and Controls. */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    width: min(96vw, 460px);
+  }
+  .tabs button {
+    flex: 1;
+    padding: 0.6rem;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid #4a4a52;
+    border-bottom: none;
+    background: #201f24;
+    color: #b8a898;
+    cursor: pointer;
+  }
+  .tabs button.active {
+    background: #26262b;
+    color: #f0e4d8;
+    border-color: #3a5bd0;
+  }
+
   .phase {
     font-size: 0.8rem;
     letter-spacing: 0.12em;
@@ -267,28 +325,5 @@
   }
   .debug summary {
     cursor: pointer;
-  }
-  .graph {
-    width: 100%;
-    max-width: 560px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-  .graph-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.8rem;
-    color: #b8a898;
-  }
-  .graph-head label {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-  .graph-hint {
-    margin: 0;
-    font-size: 0.75rem;
   }
 </style>

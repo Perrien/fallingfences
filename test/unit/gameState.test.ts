@@ -119,4 +119,14 @@ describe('GameState', () => {
     expect(after[0]).toBeCloseTo(before[0], 6);
     expect(after[2]).toBeCloseTo(before[2], 6);
   });
+
+  it('testCombination opens on the true gates and fails otherwise', () => {
+    const g = new GameState(testProfile(), combo);
+    expect(g.testCombination([0, 0, 0])).toBe(false);
+    expect(g.solvePhase).not.toBe('solved');
+    const gates = g.session.combination.gatePositions;
+    expect(g.testCombination(gates)).toBe(true);
+    expect(g.solvePhase).toBe('solved');
+    expect(g.session.solvedAt).not.toBeNull();
+  });
 });
