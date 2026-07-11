@@ -81,4 +81,20 @@ describe('GameState', () => {
     g.rotate(20); // more CCW — springs bolt back, never solves
     expect(g.solvePhase).not.toBe('solved');
   });
+
+  it('manual probes accumulate at distinct tracked-wheel positions (all wheels coupled)', () => {
+    const g = new GameState(testProfile(), combo);
+    g.measurementNoiseEnabled = false;
+    g.rotate(160); // continuous CCW — picks up all 3 wheels so they move together
+    const trackedBefore = g.wheels[2].currentPosition;
+    g.probeNow();
+    g.rotate(6);
+    g.probeNow();
+    g.rotate(6);
+    g.probeNow();
+    const trackedAfter = g.wheels[2].currentPosition;
+    // The tracked (last) wheel actually moved, and each probe landed in a new cell.
+    expect(Math.abs(trackedAfter - trackedBefore)).toBeGreaterThan(1);
+    expect(g.session.probeHistory.length).toBe(6);
+  });
 });
