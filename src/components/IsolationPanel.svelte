@@ -78,19 +78,19 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
-    border: 1px solid #4a4a52;
+    border: 1px solid var(--divider);
     border-radius: 12px;
-    background: #201f24;
+    background: var(--panel);
   }
   .iso-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 0.85rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
   .tracked-tag {
-    color: #e0574a;
+    color: var(--graph-rcp);
     font-size: 0.78rem;
   }
   .wheels {
@@ -109,13 +109,13 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    color: #f0e4d8;
+    color: var(--text);
   }
   .pos {
     width: 4rem;
-    background: #26262b;
-    color: #f0e4d8;
-    border: 1px solid #4a4a52;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--divider);
     border-radius: 6px;
     padding: 0.2rem 0.3rem;
   }
@@ -123,18 +123,18 @@
     opacity: 0.4;
   }
   .state {
-    color: #7080a0;
+    color: var(--text-tertiary);
     font-size: 0.75rem;
   }
   .wheel-row.free .state {
-    color: #e0574a;
+    color: var(--graph-rcp);
   }
   .sweep-row {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     font-size: 0.8rem;
-    color: #b8a898;
+    color: var(--text-secondary);
     flex-wrap: wrap;
   }
   .sweep-row label {
@@ -145,9 +145,9 @@
   .sweep-row input,
   .sweep-row select {
     width: 3.5rem;
-    background: #26262b;
-    color: #f0e4d8;
-    border: 1px solid #4a4a52;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--divider);
     border-radius: 6px;
     padding: 0.2rem 0.3rem;
   }
@@ -155,8 +155,8 @@
     margin-left: auto;
     padding: 0.4rem 0.8rem;
     border-radius: 8px;
-    border: 1px solid #3a5bd0;
-    background: #3a5bd0;
+    border: 1px solid var(--accent-blue);
+    background: var(--accent-blue);
     color: #fff;
     cursor: pointer;
     font-size: 0.85rem;
@@ -166,7 +166,7 @@
     cursor: default;
   }
   .muted {
-    color: #7080a0;
+    color: var(--text-tertiary);
     font-size: 0.75rem;
     margin: 0;
   }

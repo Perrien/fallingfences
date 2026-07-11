@@ -68,8 +68,8 @@
   }
   .card {
     width: min(92vw, 380px);
-    background: #26262b;
-    border: 1px solid #4a4a52;
+    background: var(--card);
+    border: 1px solid var(--divider);
     border-radius: 16px;
     padding: 1.5rem;
     display: flex;
@@ -81,8 +81,8 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: #4ac07a;
-    color: #10331f;
+    background: var(--solve);
+    color: var(--elevated);
     font-size: 1.5rem;
     display: flex;
     align-items: center;
@@ -91,14 +91,14 @@
   }
   h2 {
     margin: 0.25rem 0 0;
-    color: #4ac07a;
+    color: var(--solve);
   }
   .combo {
     margin: 0;
     font-family: ui-monospace, monospace;
     font-size: 1.4rem;
     letter-spacing: 0.06em;
-    color: #f0e4d8;
+    color: var(--text);
   }
   .rows {
     width: 100%;
@@ -112,22 +112,22 @@
     display: flex;
     justify-content: space-between;
     gap: 1rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
   .row b {
     font-variant-numeric: tabular-nums;
-    color: #f0e4d8;
+    color: var(--text);
   }
   .row .pos {
-    color: #4ac07a;
+    color: var(--solve);
   }
   .row .neg {
-    color: #e0574a;
+    color: var(--graph-rcp);
   }
   .row.total {
     margin-top: 0.35rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #4a4a52;
+    border-top: 1px solid var(--divider);
     font-size: 1.05rem;
   }
   .row.total b {
@@ -143,14 +143,15 @@
     flex: 1;
     padding: 0.7rem;
     border-radius: 10px;
-    border: 1px solid #4a4a52;
-    background: #1e1e22;
-    color: #f0e4d8;
+    border: 1px solid var(--divider);
+    background: var(--panel);
+    color: var(--text);
     cursor: pointer;
     font-size: 0.95rem;
   }
   .actions .primary {
-    background: #3a5bd0;
-    border-color: #3a5bd0;
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
   }
 </style>

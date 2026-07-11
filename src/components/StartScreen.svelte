@@ -56,7 +56,7 @@
   }
   .sub {
     margin: 0 0 1rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
   .grid {
     display: grid;
@@ -70,16 +70,16 @@
     gap: 0.15rem;
     padding: 0.9rem 1.1rem;
     border-radius: 12px;
-    border: 1px solid #4a4a52;
-    background: #26262b;
-    color: #f0e4d8;
+    border: 1px solid var(--divider);
+    background: var(--card);
+    color: var(--text);
     cursor: pointer;
     text-align: left;
     transition: border-color 0.15s, background 0.15s;
   }
   .preset:hover {
-    border-color: #b8a898;
-    background: #2e2e34;
+    border-color: var(--text-secondary);
+    background: var(--chip);
   }
   .name {
     font-size: 1.1rem;
@@ -87,6 +87,6 @@
   }
   .blurb {
     font-size: 0.85rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
 </style>

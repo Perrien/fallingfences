@@ -1,0 +1,48 @@
+/* Design tokens — ported from the app's Theme.swift (LIGHT theme only).
+ * The web version is light-only by choice. Every component references these vars,
+ * so palette changes happen here in one place. */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #e4e4e8;
+  --card: #f0f0f3;
+  --elevated: #f8f8fa;
+  --panel: #d8d8dc;
+  --chip: #e0e0e4;
+  --divider: #c0c0c6;
+
+  /* Text */
+  --text: #1a1a1c;
+  --text-secondary: #6a6a70;
+  --text-tertiary: #9a9aa0;
+
+  /* Accents */
+  --accent-blue: #3a7cb8;
+  --accent-gold: #9a7a28;
+  --solve: #b89030;
+
+  /* Graph traces */
+  --graph-rcp: #c05000;
+  --graph-lcp: #1a5fa8;
+  --graph-width: #1a1a1c;
+  --graph-amp: #2a7a30;
+  --graph-grid: #8a8a92;
+  --graph-bg: #f8f8fa;
+
+  /* Dial (light face to suit the light theme; silver bezel, dark ticks/numbers) */
+  --dial-bezel-outer: #9a9aa2;
+  --dial-bezel-inner: #cacace;
+  --dial-face: #edeef1;
+  --dial-tick: #6a6a70;
+  --dial-label: #1a1a1c;
+  --dial-reference: #ff3b30;
+  --dial-knob-rim: #c0c0c6;
+  --dial-knob-core: #dcdce0;
+  --dial-position: #3a7cb8;
+  --contact-area: rgba(154, 122, 40, 0.22);
+
+  /* Structure */
+  --radius: 10px;
+  --radius-lg: 14px;
+}

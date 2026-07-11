@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { cssVar } from '../render/theme';
+
   // Canvas dial: static number ring + needle to the current position, single-pass draw.
   // Drag to rotate; moves coalesced to one onRotate call per frame. Same interface as before.
   //
@@ -59,35 +61,44 @@
     const c = s / 2;
     const R = c - 4;
 
-    // bezel + face
-    ctx.fillStyle = '#141416';
+    const bezelOuter = cssVar('--dial-bezel-outer');
+    const bezelInner = cssVar('--dial-bezel-inner');
+    const face = cssVar('--dial-face');
+    const tickCol = cssVar('--dial-tick');
+    const labelCol = cssVar('--dial-label');
+    const needleCol = cssVar('--dial-position');
+    const knobRim = cssVar('--dial-knob-rim');
+    const knobCore = cssVar('--dial-knob-core');
+    const contactCol = cssVar('--contact-area');
+
+    // bezel (outer ring → inner ring) + dark face
+    ctx.fillStyle = bezelOuter;
     ctx.beginPath();
     ctx.arc(c, c, R, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#26262b';
+    ctx.fillStyle = bezelInner;
     ctx.beginPath();
-    ctx.arc(c, c, R - 8, 0, Math.PI * 2);
+    ctx.arc(c, c, R - 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#4a4a52';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    ctx.fillStyle = face;
+    ctx.beginPath();
+    ctx.arc(c, c, R - 10, 0, Math.PI * 2);
+    ctx.fill();
 
     // contact-area highlight (the fixed zone where contact points are read / the nose drops)
     if (contactAreaWidth > 0) {
       const a1 = ((contactAreaCenter - contactAreaWidth / 2) / numberRange) * Math.PI * 2 - Math.PI / 2;
       const a2 = ((contactAreaCenter + contactAreaWidth / 2) / numberRange) * Math.PI * 2 - Math.PI / 2;
-      const outerR = R - 1;
-      const innerR = R - 26;
       ctx.beginPath();
-      ctx.arc(c, c, outerR, a1, a2);
-      ctx.arc(c, c, innerR, a2, a1, true);
+      ctx.arc(c, c, R - 11, a1, a2);
+      ctx.arc(c, c, R - 30, a2, a1, true);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(224, 87, 74, 0.28)';
+      ctx.fillStyle = contactCol;
       ctx.fill();
     }
 
     // ticks + numbers (static ring)
-    const tickR = R - 10;
+    const tickR = R - 12;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let t = 0; t < numberRange; t++) {
@@ -95,15 +106,17 @@
       const major = t % labelStep === 0;
       const o = pt(c, c, tickR, theta);
       const i = pt(c, c, tickR - (major ? 12 : 6), theta);
-      ctx.strokeStyle = major ? '#b8a898' : '#7080a0';
+      ctx.strokeStyle = tickCol;
+      ctx.globalAlpha = major ? 1 : 0.5;
       ctx.lineWidth = major ? 1.4 : 0.6;
       ctx.beginPath();
       ctx.moveTo(i.x, i.y);
       ctx.lineTo(o.x, o.y);
       ctx.stroke();
+      ctx.globalAlpha = 1;
       if (major) {
-        const lp = pt(c, c, tickR - 24, theta);
-        ctx.fillStyle = '#b8a898';
+        const lp = pt(c, c, tickR - 22, theta);
+        ctx.fillStyle = labelCol;
         ctx.font = `${Math.max(9, s * 0.04)}px ui-monospace, monospace`;
         ctx.fillText(String(t), lp.x, lp.y);
       }
@@ -111,8 +124,8 @@
 
     // needle → current position
     const nTheta = (pos / numberRange) * Math.PI * 2;
-    const tip = pt(c, c, R - 16, nTheta);
-    ctx.strokeStyle = '#f0e4d8';
+    const tip = pt(c, c, R - 18, nTheta);
+    ctx.strokeStyle = needleCol;
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -121,14 +134,14 @@
     ctx.stroke();
 
     // hub + readout
-    ctx.fillStyle = '#1a1a1c';
+    ctx.fillStyle = knobCore;
     ctx.beginPath();
     ctx.arc(c, c, s * 0.13, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#4a4a52';
+    ctx.strokeStyle = knobRim;
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.fillStyle = '#f0e4d8';
+    ctx.fillStyle = labelCol;
     ctx.textBaseline = 'middle';
     ctx.font = `700 ${Math.max(13, s * 0.07)}px ui-monospace, monospace`;
     ctx.fillText(pos.toFixed(1), c, c);

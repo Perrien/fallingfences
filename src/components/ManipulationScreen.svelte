@@ -156,7 +156,7 @@
   .link {
     background: none;
     border: none;
-    color: #b8a898;
+    color: var(--text-secondary);
     font-size: 1rem;
     cursor: pointer;
     padding: 0;
@@ -166,7 +166,7 @@
     flex-direction: column;
     align-items: flex-end;
     font-size: 0.8rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
 
   /* Graph spans the top at all sizes. */
@@ -181,7 +181,7 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.8rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
   .graph-head label {
     display: flex;
@@ -230,49 +230,49 @@
     flex: 1;
     padding: 0.6rem;
     border-radius: 10px 10px 0 0;
-    border: 1px solid #4a4a52;
+    border: 1px solid var(--divider);
     border-bottom: none;
-    background: #201f24;
-    color: #b8a898;
+    background: var(--panel);
+    color: var(--text-secondary);
     cursor: pointer;
   }
   .tabs button.active {
-    background: #26262b;
-    color: #f0e4d8;
-    border-color: #3a5bd0;
+    background: var(--card);
+    color: var(--text);
+    border-color: var(--accent-blue);
   }
 
   .phase {
     font-size: 0.8rem;
     letter-spacing: 0.12em;
     font-weight: 700;
-    color: #7080a0;
+    color: var(--text-tertiary);
   }
   .phase-noseDropped {
-    color: #e0a24a;
+    color: var(--accent-gold);
   }
   .phase-solved {
-    color: #4ac07a;
+    color: var(--solve);
   }
   .bolt {
     width: min(72vw, 340px);
     height: 8px;
     border-radius: 4px;
-    background: #26262b;
+    background: var(--card);
     overflow: hidden;
   }
   .bolt-fill {
     height: 100%;
-    background: #e0a24a;
+    background: var(--accent-gold);
     transition: width 0.1s linear;
   }
   .hint {
     margin: 0;
     font-size: 0.85rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
   .hint.open {
-    color: #4ac07a;
+    color: var(--solve);
     font-weight: 700;
   }
   .controls {
@@ -282,15 +282,16 @@
   button {
     padding: 0.6rem 1rem;
     border-radius: 10px;
-    border: 1px solid #4a4a52;
-    background: #26262b;
-    color: #f0e4d8;
+    border: 1px solid var(--divider);
+    background: var(--card);
+    color: var(--text);
     cursor: pointer;
     font-size: 0.95rem;
   }
   button.primary {
-    background: #3a5bd0;
-    border-color: #3a5bd0;
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
   }
   .readout {
     display: flex;
@@ -305,7 +306,7 @@
     flex-wrap: wrap;
     gap: 1rem;
     font-size: 0.85rem;
-    color: #b8a898;
+    color: var(--text-secondary);
     align-items: center;
     justify-content: center;
   }
@@ -315,11 +316,11 @@
     gap: 0.35rem;
   }
   .muted {
-    color: #7080a0;
+    color: var(--text-tertiary);
   }
   .debug {
     font-size: 0.8rem;
-    color: #b8a898;
+    color: var(--text-secondary);
     width: 100%;
     max-width: 460px;
   }

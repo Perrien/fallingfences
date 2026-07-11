@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ProbeReading } from '../models/LockSession';
   import { buildTracks, graphWindowBounds, trackExtreme, type TrackDef } from '../render/graphModel';
+  import { cssVar } from '../render/theme';
 
   let {
     probeHistory,
@@ -20,7 +21,6 @@
     showWidth?: boolean;
   } = $props();
 
-  const COLORS: Record<TrackDef['label'], string> = { RCP: '#e0574a', LCP: '#5a8ad0', W: '#e0a24a' };
   const AXIS_H = 14;
   const TRACK_H = 92;
 
@@ -54,7 +54,13 @@
     canvasEl.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#1e1e22';
+    const COLORS: Record<TrackDef['label'], string> = {
+      RCP: cssVar('--graph-rcp'),
+      LCP: cssVar('--graph-lcp'),
+      W: cssVar('--graph-width'),
+    };
+    const gridCol = cssVar('--graph-grid');
+    ctx.fillStyle = cssVar('--graph-bg');
     ctx.fillRect(0, 0, w, h);
 
     const L = 34;
@@ -70,7 +76,7 @@
     // vertical grid
     for (let i = 0; i <= numberRange; i++) {
       const x = xFor(i);
-      ctx.strokeStyle = i % 10 === 0 ? '#40404a' : i % 5 === 0 ? '#33333a' : '#2a2a30';
+      ctx.strokeStyle = i % 10 === 0 ? gridCol : i % 5 === 0 ? gridCol + '99' : gridCol + '55';
       ctx.lineWidth = i % 10 === 0 ? 1 : 0.5;
       ctx.beginPath();
       ctx.moveTo(x, plotTop);
@@ -79,7 +85,7 @@
     }
 
     // x-axis labels (top + bottom)
-    ctx.fillStyle = '#7080a0';
+    ctx.fillStyle = cssVar('--text-secondary');
     ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -90,7 +96,7 @@
     }
 
     // track dividers
-    ctx.strokeStyle = '#4a4a52';
+    ctx.strokeStyle = cssVar('--divider');
     ctx.lineWidth = 1;
     for (let i = 0; i <= n; i++) {
       const y = plotTop + i * trackH;

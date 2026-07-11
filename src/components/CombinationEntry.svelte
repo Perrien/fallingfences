@@ -43,13 +43,13 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
-    border: 1px solid #4a4a52;
+    border: 1px solid var(--divider);
     border-radius: 12px;
-    background: #201f24;
+    background: var(--panel);
   }
   .head {
     font-size: 0.85rem;
-    color: #b8a898;
+    color: var(--text-secondary);
   }
   .fields {
     display: flex;
@@ -62,13 +62,13 @@
     flex-direction: column;
     gap: 0.15rem;
     font-size: 0.7rem;
-    color: #7080a0;
+    color: var(--text-tertiary);
   }
   .fields input {
     width: 3.2rem;
-    background: #26262b;
-    color: #f0e4d8;
-    border: 1px solid #4a4a52;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--divider);
     border-radius: 6px;
     padding: 0.25rem 0.3rem;
     font-size: 0.95rem;
@@ -77,14 +77,14 @@
     margin-left: auto;
     padding: 0.45rem 1rem;
     border-radius: 8px;
-    border: 1px solid #3a5bd0;
-    background: #3a5bd0;
+    border: 1px solid var(--accent-blue);
+    background: var(--accent-blue);
     color: #fff;
     cursor: pointer;
   }
   .fail-msg {
     margin: 0;
     font-size: 0.8rem;
-    color: #e0574a;
+    color: var(--graph-rcp);
   }
 </style>
