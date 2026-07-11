@@ -23,7 +23,13 @@
   </header>
 
   <div class="stage">
-    <Dial numberRange={store.numberRange} dialPosition={store.dialPosition} onRotate={(d) => store.rotate(d)} />
+    <Dial
+      numberRange={store.numberRange}
+      dialPosition={store.dialPosition}
+      contactAreaCenter={store.profile.contactAreaCenter}
+      contactAreaWidth={store.profile.contactAreaWidth}
+      onRotate={(d) => store.rotate(d)}
+    />
 
     <div class={`phase phase-${store.solvePhase}`}>{phaseLabel}</div>
 

@@ -7,7 +7,13 @@
 - **Phase 0 — DONE (2026-07-10).** Repo live and deploying to `perrien.github.io/fallingfences/`
   via GitHub Actions. `SeededRNG` (BigInt splitmix64 + `swiftInt` rejection sampling) and
   `AngleNormalizer` ported; **30 parity tests green** against the Python oracle; production PWA
-  build verified. Next session: **Phase 1** (standard manipulation MVP).
+  build verified.
+- **Phase 1 — in progress (2026-07-11).** Ported WheelFactory, ContactPointCalculator,
+  WheelPositionEngine, SolveScoring, GameState (82 tests). UI: preset picker → dial → probe/sweep
+  → canvas contact graph → solve loop. Remaining: canvas dial, solve/score sheet, responsive
+  layouts.
+- **Priority note (user, 2026-07-11):** persistence is LOW priority — build all other
+  functionality (through Phase 2 isolation/auto-probe) first; wire IndexedDB near the end.
 
 ## Context
 

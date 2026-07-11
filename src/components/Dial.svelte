@@ -1,149 +1,213 @@
 <script lang="ts">
-  // Interactive dial: static number ring + a needle pointing at the current dial position.
-  // Drag anywhere on the face to rotate. Canvas rendering (per the plan) is a later polish;
-  // SVG is fine at this scale and keeps the first playable slice simple.
+  // Canvas dial: static number ring + needle to the current position, single-pass draw.
+  // Drag to rotate; moves coalesced to one onRotate call per frame. Same interface as before.
+  //
+  // Sizing: the ResizeObserver watches the WRAPPER (CSS-sized), never the canvas — observing
+  // the canvas while resizing its own buffer causes a runaway resize loop.
   let {
     numberRange,
     dialPosition,
     onRotate,
-  }: { numberRange: number; dialPosition: number; onRotate: (deltaIncrements: number) => void } = $props();
+    contactAreaCenter = 0,
+    contactAreaWidth = 0,
+  }: {
+    numberRange: number;
+    dialPosition: number;
+    onRotate: (deltaIncrements: number) => void;
+    contactAreaCenter?: number;
+    contactAreaWidth?: number;
+  } = $props();
 
-  let svgEl: SVGSVGElement;
+  let wrapEl: HTMLDivElement;
+  let canvasEl: HTMLCanvasElement;
+  let size = $state(0);
+
   let dragging = false;
-  let lastAngle = 0;
+  let lastAngleDeg = 0;
+  let pendingDelta = 0;
+  let rafScheduled = false;
 
-  const C = 100; // center
-  const R = 92; // outer radius
+  const labelStep = $derived(numberRange <= 60 ? 5 : 10);
 
-  const labelStep = $derived(numberRange <= 40 ? 5 : numberRange <= 60 ? 5 : 10);
-  const ticks = $derived(Array.from({ length: numberRange }, (_, i) => i));
-  // Needle points at the current dial position; 0 at top, increasing clockwise.
-  const needleRad = $derived(((dialPosition / numberRange) * 360 - 90) * (Math.PI / 180));
+  $effect(() => {
+    const ro = new ResizeObserver((entries) => {
+      const w = Math.round(entries[0].contentRect.width);
+      if (w > 0 && w !== size) size = w;
+    });
+    ro.observe(wrapEl);
+    return () => ro.disconnect();
+  });
+
+  $effect(() => {
+    if (size > 0) draw(dialPosition, size);
+  });
+
+  // point at radius r for an angle measured clockwise from the top
+  function pt(cx: number, cy: number, r: number, thetaFromTop: number) {
+    return { x: cx + r * Math.sin(thetaFromTop), y: cy - r * Math.cos(thetaFromTop) };
+  }
+
+  function draw(pos: number, s: number) {
+    const ctx = canvasEl?.getContext('2d');
+    if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvasEl.width = Math.round(s * dpr);
+    canvasEl.height = Math.round(s * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, s, s);
+
+    const c = s / 2;
+    const R = c - 4;
+
+    // bezel + face
+    ctx.fillStyle = '#141416';
+    ctx.beginPath();
+    ctx.arc(c, c, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#26262b';
+    ctx.beginPath();
+    ctx.arc(c, c, R - 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#4a4a52';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // contact-area highlight (the fixed zone where contact points are read / the nose drops)
+    if (contactAreaWidth > 0) {
+      const a1 = ((contactAreaCenter - contactAreaWidth / 2) / numberRange) * Math.PI * 2 - Math.PI / 2;
+      const a2 = ((contactAreaCenter + contactAreaWidth / 2) / numberRange) * Math.PI * 2 - Math.PI / 2;
+      const outerR = R - 1;
+      const innerR = R - 26;
+      ctx.beginPath();
+      ctx.arc(c, c, outerR, a1, a2);
+      ctx.arc(c, c, innerR, a2, a1, true);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(224, 87, 74, 0.28)';
+      ctx.fill();
+    }
+
+    // ticks + numbers (static ring)
+    const tickR = R - 10;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let t = 0; t < numberRange; t++) {
+      const theta = (t / numberRange) * Math.PI * 2;
+      const major = t % labelStep === 0;
+      const o = pt(c, c, tickR, theta);
+      const i = pt(c, c, tickR - (major ? 12 : 6), theta);
+      ctx.strokeStyle = major ? '#b8a898' : '#7080a0';
+      ctx.lineWidth = major ? 1.4 : 0.6;
+      ctx.beginPath();
+      ctx.moveTo(i.x, i.y);
+      ctx.lineTo(o.x, o.y);
+      ctx.stroke();
+      if (major) {
+        const lp = pt(c, c, tickR - 24, theta);
+        ctx.fillStyle = '#b8a898';
+        ctx.font = `${Math.max(9, s * 0.04)}px ui-monospace, monospace`;
+        ctx.fillText(String(t), lp.x, lp.y);
+      }
+    }
+
+    // needle → current position
+    const nTheta = (pos / numberRange) * Math.PI * 2;
+    const tip = pt(c, c, R - 16, nTheta);
+    ctx.strokeStyle = '#f0e4d8';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(c, c);
+    ctx.lineTo(tip.x, tip.y);
+    ctx.stroke();
+
+    // hub + readout
+    ctx.fillStyle = '#1a1a1c';
+    ctx.beginPath();
+    ctx.arc(c, c, s * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#4a4a52';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#f0e4d8';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(13, s * 0.07)}px ui-monospace, monospace`;
+    ctx.fillText(pos.toFixed(1), c, c);
+  }
 
   function angleOf(e: PointerEvent): number {
-    const rect = svgEl.getBoundingClientRect();
+    const rect = canvasEl.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     return (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI;
   }
+
+  function flush() {
+    rafScheduled = false;
+    if (pendingDelta !== 0) {
+      onRotate(pendingDelta);
+      pendingDelta = 0;
+    }
+  }
+
   function down(e: PointerEvent) {
     dragging = true;
-    lastAngle = angleOf(e);
-    svgEl.setPointerCapture(e.pointerId);
+    lastAngleDeg = angleOf(e);
+    canvasEl.setPointerCapture(e.pointerId);
   }
   function move(e: PointerEvent) {
     if (!dragging) return;
     const a = angleOf(e);
-    let d = a - lastAngle;
+    let d = a - lastAngleDeg;
     if (d > 180) d -= 360;
     else if (d < -180) d += 360;
-    lastAngle = a;
-    // Screen-clockwise drag (d > 0) turns the dial right (CW). In the sim, CW is a
-    // negative delta only for the wheel engine — but the number under the index should
-    // increase when dragging clockwise, so map clockwise drag to a positive dial delta.
-    onRotate((d / 360) * numberRange);
+    lastAngleDeg = a;
+    // Screen-clockwise drag turns the dial right → the number under the index increases.
+    pendingDelta += (d / 360) * numberRange;
+    if (!rafScheduled) {
+      rafScheduled = true;
+      requestAnimationFrame(flush);
+    }
   }
   function up(e: PointerEvent) {
     dragging = false;
     try {
-      svgEl.releasePointerCapture(e.pointerId);
+      canvasEl.releasePointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
   }
-
-  function tickPos(t: number, r: number) {
-    const rad = ((t / numberRange) * 360 - 90) * (Math.PI / 180);
-    return { x: C + r * Math.cos(rad), y: C + r * Math.sin(rad) };
-  }
 </script>
 
-<svg
-  bind:this={svgEl}
-  viewBox="0 0 200 200"
-  class="dial"
-  role="slider"
-  aria-label="Safe dial"
-  aria-valuenow={Math.round(dialPosition)}
-  aria-valuemin="0"
-  aria-valuemax={numberRange}
-  tabindex="0"
-  onpointerdown={down}
-  onpointermove={move}
-  onpointerup={up}
-  onpointercancel={up}
->
-  <circle cx={C} cy={C} r={R} class="face" />
-  {#each ticks as t}
-    {@const outer = tickPos(t, R)}
-    {@const major = t % labelStep === 0}
-    {@const inner = tickPos(t, R - (major ? 12 : 6))}
-    <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} class={major ? 'tick major' : 'tick'} />
-    {#if major}
-      {@const lp = tickPos(t, R - 24)}
-      <text x={lp.x} y={lp.y} class="num">{t}</text>
-    {/if}
-  {/each}
-
-  <!-- fixed index marker at top -->
-  <polygon points="{C - 7},4 {C + 7},4 {C},18" class="index" />
-
-  <!-- needle -->
-  <line x1={C} y1={C} x2={C + (R - 14) * Math.cos(needleRad)} y2={C + (R - 14) * Math.sin(needleRad)} class="needle" />
-  <circle cx={C} cy={C} r="26" class="hub" />
-  <text x={C} y={C} class="readout">{dialPosition.toFixed(1)}</text>
-</svg>
+<div class="dial-wrap" bind:this={wrapEl}>
+  <canvas
+    bind:this={canvasEl}
+    role="slider"
+    aria-label="Safe dial"
+    aria-valuenow={Math.round(dialPosition)}
+    aria-valuemin="0"
+    aria-valuemax={numberRange}
+    tabindex="0"
+    onpointerdown={down}
+    onpointermove={move}
+    onpointerup={up}
+    onpointercancel={up}
+  ></canvas>
+</div>
 
 <style>
-  .dial {
+  .dial-wrap {
     width: min(72vw, 340px);
-    height: min(72vw, 340px);
+    aspect-ratio: 1 / 1;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
     touch-action: none;
     cursor: grab;
     user-select: none;
   }
-  .dial:active {
+  canvas:active {
     cursor: grabbing;
-  }
-  .face {
-    fill: #26262b;
-    stroke: #4a4a52;
-    stroke-width: 1.5;
-  }
-  .tick {
-    stroke: #7080a0;
-    stroke-width: 0.6;
-  }
-  .tick.major {
-    stroke: #b8a898;
-    stroke-width: 1.2;
-  }
-  .num {
-    fill: #b8a898;
-    font-size: 8px;
-    text-anchor: middle;
-    dominant-baseline: middle;
-    font-family: -apple-system, system-ui, sans-serif;
-  }
-  .index {
-    fill: #e0574a;
-  }
-  .needle {
-    stroke: #f0e4d8;
-    stroke-width: 2;
-    stroke-linecap: round;
-  }
-  .hub {
-    fill: #1a1a1c;
-    stroke: #4a4a52;
-    stroke-width: 1.5;
-  }
-  .readout {
-    fill: #f0e4d8;
-    font-size: 14px;
-    font-weight: 700;
-    text-anchor: middle;
-    dominant-baseline: middle;
-    font-family: -apple-system, system-ui, sans-serif;
   }
 </style>
