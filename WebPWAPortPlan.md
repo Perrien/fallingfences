@@ -20,6 +20,11 @@ Decisions:
 - **Persistence:** ephemeral — only an in-progress unsolved lock must survive; solved locks
   are discarded; progression best-effort; preferences are hardcoded defaults.
 - **Native-save interop:** none.
+- **Responsive layout:** **full parity** — reproduce the distinct layouts, keyed off viewport
+  width (not OS): a compact/tabbed layout on narrow screens (phone), a split/sidebar layout on
+  wide screens (iPad/Mac), plus the landscape full-screen graph mode. Do NOT collapse to a
+  single adaptive layout. This maps onto CSS breakpoints the same way the native app keys off
+  `horizontalSizeClass` (compact vs regular).
 - **Repo:** standalone `github.com/Perrien/fallingfences`, Pages URL
   `perrien.github.io/fallingfences/`, so **Vite `base: '/fallingfences/'`**.
 
@@ -116,7 +121,8 @@ installation; call `navigator.storage.persist()` as cheap insurance.
 - **Phase 1 — Standard MVP (target).** Full loop: home → pick preset lock → dial → probe →
   graph → solve → score. Ports: `WheelFactory`, `ContactPointCalculator`, `WheelPositionEngine`,
   `SolveScoreCalculator`, `GameState`, `locks` store, and views `StartScreenView` (preset picker
-  only), `ManipulationScreen` (single responsive layout), `DialRingView` (canvas),
+  only), `ManipulationScreen` (full-parity layouts: compact/tabbed on narrow, split/sidebar on
+  wide, breakpoint-driven), `DialRingView` (canvas),
   `ContactGraphView` (canvas), `ScanSidebarView`, `PostSolveSheetView`, `SettingsView`.
   Single-pointer drag → dial rotation.
 - **Phase 2 — Standard depth.** Isolation tests, auto-probe, multi-scan trees, wheel notes,
@@ -139,9 +145,10 @@ installation; call `navigator.storage.persist()` as cheap insurance.
 
 ## Trim for v1
 
-Standard tier only; one responsive layout (not iPhone-tab vs iPad-split); defer
-isolation/auto-probe/multi-scan/custom-creation to Phase 2; polar graph to Phase 2; particles
-optional; no native-save import; no solved-lock archive or profile library.
+Standard tier only; defer isolation/auto-probe/multi-scan/custom-creation to Phase 2; polar
+graph to Phase 2; particles optional; no native-save import; no solved-lock archive or profile
+library. (Layout parity is NOT trimmed — see Decisions: distinct compact/wide layouts from the
+start.)
 
 ## Verification
 
