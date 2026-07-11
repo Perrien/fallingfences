@@ -8,12 +8,22 @@
   via GitHub Actions. `SeededRNG` (BigInt splitmix64 + `swiftInt` rejection sampling) and
   `AngleNormalizer` ported; **30 parity tests green** against the Python oracle; production PWA
   build verified.
-- **Phase 1 — in progress (2026-07-11).** Ported WheelFactory, ContactPointCalculator,
-  WheelPositionEngine, SolveScoring, GameState (82 tests). UI: preset picker → dial → probe/sweep
-  → canvas contact graph → solve loop. Remaining: canvas dial, solve/score sheet, responsive
-  layouts.
+- **Phase 1 — DONE (2026-07-11).** Ported WheelFactory, ContactPointCalculator,
+  WheelPositionEngine, SolveScoring, GameState. Full MVP loop live: preset picker → **canvas
+  dial** → probe/sweep → **canvas contact graph** → solve → **score sheet**, in the responsive
+  layout. Combination entry (`testCombination`) closes the deduce→open gap: type deduced gates →
+  Test → opens.
+- **Phase 2 — in progress (2026-07-11).** Isolation via **auto-probe** (lock wheels at chosen
+  positions, sweep the free one, chart it) shipped. App-matched responsive layout shipped: wide
+  = graph banner on top + dial bottom-left + controls bottom-right; narrow = graph on top +
+  Dial/Controls tabs (matchMedia-driven). **84 tests green.**
+  Remaining Phase 2: circular/polar graph (narrow view), isolation test *tables*,
+  candidates/scan tracking, custom lock creation.
 - **Priority note (user, 2026-07-11):** persistence is LOW priority — build all other
-  functionality (through Phase 2 isolation/auto-probe) first; wire IndexedDB near the end.
+  functionality (through Phase 2) first; wire IndexedDB near the end. UI parity prioritized:
+  wide layout matches the app; narrow uses tabs; circular graph for narrow is queued next.
+- **Wheel numbering:** kept raw-array order (Wheel 1 = internal index 0 = cam-adjacent);
+  user reviewed and accepted (verifiable now via combination entry). Not flipped to outermost-first.
 
 ## Context
 
@@ -169,19 +179,20 @@ This is an Apple-managed Mac; getting `npm` working took some doing. What was fo
   Vite+Svelte 5+TS+Vitest+PWA; deployed the shell to prove the `/fallingfences/` subpath;
   ported `SeededRNG` + `AngleNormalizer`; built the Python-oracle fixtures. Exit gate met:
   30 parity tests green (incl. `swiftInt`).
-- **Phase 1 — Standard MVP (target).** Full loop: home → pick preset lock → dial → probe →
-  graph → solve → score. Ports: `WheelFactory`, `ContactPointCalculator`, `WheelPositionEngine`,
-  `SolveScoreCalculator`, `GameState`, `locks` store, and views `StartScreenView` (preset picker
-  only), `ManipulationScreen` (full-parity layouts: compact/tabbed on narrow, split/sidebar on
-  wide, breakpoint-driven), `DialRingView` (canvas),
-  `ContactGraphView` (canvas), `ScanSidebarView`, `PostSolveSheetView`, `SettingsView`.
-  Single-pointer drag → dial rotation.
-- **Phase 2 — Standard depth.** Isolation tests, auto-probe, multi-scan trees, wheel notes,
-  polar `CircularGraphView`, custom lock creation.
+- **Phase 1 — Standard MVP. ✅ DONE (2026-07-11).** Full loop: preset picker → canvas dial →
+  probe/sweep → canvas contact graph → solve → score sheet, responsive. Ported `WheelFactory`,
+  `ContactPointCalculator`, `WheelPositionEngine`, `SolveScoreCalculator`, `GameState` (as a
+  plain class + `GameStore.svelte.ts` reactive wrapper). Plus `testCombination` (enter deduced
+  gates → open). `locks` IndexedDB store deferred (persistence is low priority).
+- **Phase 2 — Standard depth (in progress).** ✅ Isolation via auto-probe (`IsolationPanel`);
+  ✅ app-matched responsive layout (wide graph-banner + dial/controls; narrow graph + tabs).
+  ⏳ Remaining: polar `CircularGraphView` (narrow view — queued next), isolation test *tables*
+  + instant auto-run, candidates/scan tracking, custom lock creation, wheel notes.
 - **Phase 3 — Progression.** `ProgressionSheetView`, ranks (best-effort persistence).
 - **Phase 4 — Ultra tier.** `UltraProbeEngine`, `UltraManipulationView`, and the hard part:
   `UltraGraphGestureOverlay` (concurrent 1-finger drag / 2-finger pan / pinch) → a Pointer
   Events state machine in one isolated `render/ultraGestures.ts` module.
+- **Deferred to the end:** `locks`/`progression` IndexedDB persistence (low priority per user).
 
 ## Hardest risks + mitigation
 
