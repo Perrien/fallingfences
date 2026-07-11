@@ -2,6 +2,13 @@
 
 *Temporary porting doc — lives in this repo only until the port is complete.*
 
+## Status
+
+- **Phase 0 — DONE (2026-07-10).** Repo live and deploying to `perrien.github.io/fallingfences/`
+  via GitHub Actions. `SeededRNG` (BigInt splitmix64 + `swiftInt` rejection sampling) and
+  `AngleNormalizer` ported; **30 parity tests green** against the Python oracle; production PWA
+  build verified. Next session: **Phase 1** (standard manipulation MVP).
+
 ## Context
 
 The original app is a Swift/SwiftUI iOS+macOS safe-manipulation simulation living in a
@@ -49,30 +56,39 @@ Swift `SafeSimulator`.
 
 ```
 fallingfences/                     ← repo root = the web app
-├── src/{models,sim,state,persistence,render,components}/  App.svelte  main.ts
-├── test/{vectors,parity}/         ← parity vectors (committed) + Vitest suites
-├── static/                        ← manifest, icons (copy from Swift AppIcon PNGs)
-├── vite.config.ts                 ← base:'/fallingfences/' + vite-plugin-pwa
-├── package.json  tsconfig.json
-├── .github/workflows/deploy.yml   ← build + deploy to Pages
-└── WebPWAPortPlan.md              ← this doc (temporary)
+├── src/
+│   ├── sim/{SeededRNG.ts, AngleNormalizer.ts}     ← ported + parity-tested (Phase 0)
+│   ├── App.svelte  main.ts  app.css  vite-env.d.ts
+│   └── (models, state, persistence, render, components — added in later phases)
+├── test/
+│   ├── vectors/{rng.json, angle.json}   ← generated parity fixtures (committed)
+│   └── parity/{rng.test.ts, angle.test.ts}
+├── tools/gen_rng_fixtures.py            ← Python oracle; regenerates fixtures (npm run fixtures)
+├── index.html  vite.config.ts  svelte.config.js  tsconfig.json  package.json
+├── .github/workflows/deploy.yml         ← build + deploy to Pages
+├── README.md
+└── WebPWAPortPlan.md                    ← this doc (temporary)
 ```
 
-**Deploy:** GitHub Actions on push to `main` → `npm ci && npm run build` →
-`upload-pages-artifact`(`dist`) → `deploy-pages`. Enable in repo **Settings → Pages → Source:
-GitHub Actions**. **Critical:** Pages serves under `/fallingfences/`, so `base`, PWA `scope`,
-and `start_url` must all be `/fallingfences/` or assets 404.
+(`node_modules/`, `dist/`, and `package-lock.json` are gitignored — see Build environment notes.)
+
+**Deploy:** GitHub Actions on push to `main` → `npm install` (public registry) → `npm run test`
+(parity gate) → `npm run build` → `upload-pages-artifact`(`dist`) → `deploy-pages`. Enable in
+repo **Settings → Pages → Source: GitHub Actions** (ignore the "Static HTML" starter — our
+workflow builds the app). **Critical:** Pages serves under `/fallingfences/`, so `base`, PWA
+`scope`, and `start_url` must all be `/fallingfences/` or assets 404.
 
 ## Cross-repo parity handoff
 
-The reference oracle (`diagnostic_sim.py` + Swift parity tests) stays in the SafeCracking repo;
-this repo cannot reference it directly. Handoff:
-1. In the SafeCracking repo, add a vector-export step (Swift test or reuse `diagnostic_sim.py`)
-   that emits JSON for ~30 seed/profile combos: expected base heights, oval freqs, false gates,
-   sampled noise, and heights at test positions.
-2. **Copy those JSON fixtures once** into this repo's `test/vectors/`.
-3. (Optional) copy `diagnostic_sim.py` in as a tooling script for regenerating fixtures.
-Vitest here asserts the TS engine reproduces the fixtures.
+The reference oracle lives in the SafeCracking repo (`diagnostic_sim.py` + the Swift parity
+tests); this repo can't reference it directly. **What we actually did in Phase 0:**
+`tools/gen_rng_fixtures.py` is a self-contained copy of the oracle's RNG + `swift_int` logic
+(lifted verbatim from `diagnostic_sim.py`); it emits `test/vectors/*.json`, which Vitest asserts
+the TS port against. Expected values were cross-checked against the Swift `SeededRNGTests` /
+`DiagnosticParityTests`. For Phase 1's `WheelFactory`/`ContactPointCalculator`, extend
+`gen_rng_fixtures.py` with `build_wheels`/`wheel_height` (also in `diagnostic_sim.py`) and gate
+on the `DiagnosticParityTests` values (seed 12345 → base heights `[1.0, 0.965, 0.930]`, freqs
+`[0.558, 0.764, 1.771]`, false gates W1@79 / W2@[34,41] / W3@[3,12,28]).
 
 ## Core-logic translation (bottom-up, each layer parity-gated)
 
@@ -112,12 +128,41 @@ card); `viewport-fit=cover` + safe-area insets. Installed home-screen PWAs are e
 WebKit's 7-day storage eviction (that cap only hits uninstalled Safari-tab use), so nudge
 installation; call `navigator.storage.persist()` as cheap insurance.
 
+**Update behavior (verified):** `registerType: 'autoUpdate'` means an installed home-screen PWA
+picks up new deploys automatically — no delete/re-add. The service worker revalidates on launch;
+the new version typically goes live on the *next* launch after the one that detected it (on iOS,
+fully closing + reopening guarantees the check). **Exception:** iOS bakes the home-screen icon
+and app name in at install time — *content* updates freely, but a changed icon/name requires
+re-adding. Relevant once: when the real app icon lands (Phase 1), re-add to pick it up.
+
+## Build environment & CI notes (this machine — see also team memory)
+
+This is an Apple-managed Mac; getting `npm` working took some doing. What was found:
+
+- **TLS / cert:** npm failed with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` (corporate TLS
+  inspection). `--use-system-ca` and the Claude sandbox `bundle.pem` were NOT enough — the corp
+  CA is in the **login keychain**. Fix that worked: dump all keychains to a PEM and point Node at
+  it via `NODE_EXTRA_CA_CERTS=~/node-ca.pem` (added to `~/.zshrc`). See README for the exact
+  `security find-certificate` commands.
+- **Registry:** local npm uses the internal mirror `https://npm.apple.com`
+  (`npm config set registry ...`).
+- **CI cannot use the local lockfile.** `package-lock.json` generated here resolves to
+  `npm.apple.com` / `artifacts.apple.com` — unreachable from GitHub's runners. So the lockfile is
+  **gitignored** (not committed) and CI runs `npm install --registry=https://registry.npmjs.org/`
+  (public registry, re-resolves fresh). Trade-off: no locked reproducibility in CI; acceptable for
+  a project this small. If locked builds ever matter, generate a public-registry lockfile from a
+  clean-internet machine.
+- **Node:** local is v26; CI pinned to Node 22 (the setup-node "Node 20 deprecated" line is a
+  harmless action-runtime warning, not our build).
+- **npm is Apple-hardened** (blocks package install-scripts). If esbuild/vite break on a fresh
+  install, `npm approve-scripts esbuild && npm rebuild esbuild`.
+
 ## Phased milestones
 
-- **Phase 0 — Foundation & parity (no UI).** Scaffold Vite+Svelte+TS+Vitest+PWA; deploy an
-  empty shell to prove the `/fallingfences/` subpath config end-to-end; port `SeededRNG` +
-  `AngleNormalizer`; import parity fixtures from SafeCracking. Exit gate: RNG + `swift_int`
-  parity green.
+- **Phase 0 — Foundation & parity (no UI). ✅ DONE (2026-07-10).** Scaffolded
+  Vite+Svelte 5+TS+Vitest+PWA; deployed the shell to prove the `/fallingfences/` subpath;
+  ported `SeededRNG` + `AngleNormalizer`; built the Python-oracle fixtures. Exit gate met:
+  30 parity tests green (incl. `swiftInt`).
 - **Phase 1 — Standard MVP (target).** Full loop: home → pick preset lock → dial → probe →
   graph → solve → score. Ports: `WheelFactory`, `ContactPointCalculator`, `WheelPositionEngine`,
   `SolveScoreCalculator`, `GameState`, `locks` store, and views `StartScreenView` (preset picker
