@@ -2,27 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { SeededRNG } from '../../src/sim/SeededRNG';
 import fixtures from '../vectors/rng.json';
 
-// These fixtures are the Python oracle output (tools/gen_rng_fixtures.py), which
-// reproduces Swift's SeededRNG bit-for-bit. Exact equality is expected for all
-// RNG-derived integer values; nextDouble/nextDoubleIn use the same IEEE-754 ops in
-// both languages, so exact equality holds there too.
-
+// Fixtures are the Python oracle output (tools/gen_rng_fixtures.py), faithful to Swift.
+// Exact equality is expected throughout — nextDouble/nextDoubleIn use identical IEEE-754
+// ops in both languages.
 const f = fixtures as any;
 
 describe('SeededRNG.next() — raw 64-bit sequence', () => {
   for (const [seed, expected] of Object.entries<string[]>(f.next)) {
     it(`seed ${seed} reproduces ${expected.length} value(s)`, () => {
       const rng = new SeededRNG(BigInt(seed));
-      for (const e of expected) {
-        expect(rng.next()).toBe(BigInt(e));
-      }
+      for (const e of expected) expect(rng.next()).toBe(BigInt(e));
     });
   }
 
   it('seed 0 is remapped to a nonzero, deterministic value', () => {
     const a = new SeededRNG(0n).next();
-    const b = new SeededRNG(0n).next();
-    expect(a).toBe(b);
+    expect(a).toBe(new SeededRNG(0n).next());
     expect(a).not.toBe(0n);
   });
 
@@ -50,35 +45,40 @@ describe('SeededRNG.nextDoubleIn() — closed range', () => {
     const c = f.nextDoubleIn[key];
     it(`seed ${c.seed} in [${c.lo}, ${c.hi}]`, () => {
       const rng = new SeededRNG(BigInt(c.seed));
-      for (const e of c.values as string[]) {
-        const v = rng.nextDoubleIn(c.lo, c.hi);
-        expect(v).toBe(parseFloat(e));
-        expect(v).toBeGreaterThanOrEqual(c.lo);
-        expect(v).toBeLessThanOrEqual(c.hi);
-      }
+      for (const e of c.values as string[]) expect(rng.nextDoubleIn(c.lo, c.hi)).toBe(parseFloat(e));
     });
   }
 });
 
-describe('SeededRNG.nextInt() — plain modulo', () => {
+describe('SeededRNG.nextInt() — plain modulo (false-gate counts)', () => {
   for (const key of Object.keys(f.nextInt)) {
     const c = f.nextInt[key];
     it(`seed ${c.seed} in [${c.lo}, ${c.hi}]`, () => {
       const rng = new SeededRNG(BigInt(c.seed));
-      for (const e of c.values as number[]) {
-        expect(rng.nextInt(c.lo, c.hi)).toBe(e);
-      }
+      for (const e of c.values as number[]) expect(rng.nextInt(c.lo, c.hi)).toBe(e);
     });
   }
 });
 
-describe('SeededRNG.swiftInt() — rejection sampling (shuffle primitive)', () => {
-  for (const key of Object.keys(f.swiftInt)) {
-    const c = f.swiftInt[key];
+describe('SeededRNG.nextUpperBound() — Lemire (stdlib next(upperBound:))', () => {
+  for (const key of Object.keys(f.nextUpperBound)) {
+    const c = f.nextUpperBound[key];
     it(`${key}`, () => {
       const rng = new SeededRNG(BigInt(c.seed));
-      const results = (c.calls as [number, number][]).map(([lo, hi]) => rng.swiftInt(lo, hi));
-      expect(results).toEqual(c.results);
+      const got = (c.bounds as number[]).map((b) => rng.nextUpperBound(BigInt(b)).toString());
+      expect(got).toEqual(c.results);
+    });
+  }
+});
+
+describe('SeededRNG.shuffle() — Fisher-Yates (Array.shuffle(using:))', () => {
+  for (const key of Object.keys(f.shuffle)) {
+    const c = f.shuffle[key];
+    it(`${key}`, () => {
+      const rng = new SeededRNG(BigInt(c.seed));
+      const arr = Array.from({ length: c.n }, (_, i) => i);
+      rng.shuffle(arr);
+      expect(arr).toEqual(c.result);
     });
   }
 });

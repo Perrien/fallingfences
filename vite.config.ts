@@ -1,10 +1,9 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // Served from GitHub Pages under /fallingfences/ — base, scope, and start_url must
-// all agree or assets 404. See WebPWAPortPlan.md "Deploy".
+// all agree or assets 404. See WebPWAPortPlan.md "Deploy". Test config is in vitest.config.ts.
 export default defineConfig({
   base: '/fallingfences/',
   plugins: [
@@ -24,8 +23,4 @@ export default defineConfig({
       },
     }),
   ],
-  test: {
-    environment: 'node',
-    include: ['test/**/*.test.ts'],
-  },
 });
