@@ -19,6 +19,11 @@
   Dial/Controls tabs (matchMedia-driven). **84 tests green.**
   Remaining Phase 2: circular/polar graph (narrow view), isolation test *tables*,
   candidates/scan tracking, custom lock creation.
+- **UI refinement pass (2026-07-11, ongoing).** Established a **light-only design-token system**
+  (`src/theme.css`, ported from the app's `Theme.swift` light palette) as the single source of
+  truth; every component + both canvases (`cssVar()`) reference tokens. Light dial face. Graph
+  refinements: larger axis labels, removed title, RCP always-on + LCP/Width/**Amplify** toggles,
+  grid-line weighting. Next: shared spacing/typography + panel/button primitives, dial fidelity.
 - **Priority note (user, 2026-07-11):** persistence is LOW priority — build all other
   functionality (through Phase 2) first; wire IndexedDB near the end. UI parity prioritized:
   wide layout matches the app; narrow uses tabs; circular graph for narrow is queued next.

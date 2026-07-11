@@ -9,7 +9,9 @@
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
   let showGates = $state(false); // debug aid
+  let showLCP = $state(true);
   let showWidth = $state(false);
+  let amplified = $state(false);
   let sheetDismissed = $state(false);
 
   // Wide (Mac/iPad): graph on top, dial + controls side-by-side below.
@@ -95,15 +97,18 @@
 
   <div class="graph">
     <div class="graph-head">
-      <span>Contact graph</span>
+      <label><input type="checkbox" bind:checked={showLCP} /> LCP</label>
       <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
+      <label><input type="checkbox" bind:checked={amplified} /> Amplify</label>
     </div>
     <ContactGraph
       probeHistory={store.probeHistory}
       numberRange={store.numberRange}
       contactAreaCenter={store.profile.contactAreaCenter}
       contactAreaWidth={store.profile.contactAreaWidth}
+      {showLCP}
       {showWidth}
+      {amplified}
     />
   </div>
 
@@ -178,9 +183,10 @@
   }
   .graph-head {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    font-size: 0.8rem;
+    gap: 1rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
   }
   .graph-head label {

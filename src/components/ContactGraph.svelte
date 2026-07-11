@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ProbeReading } from '../models/LockSession';
-  import { buildTracks, graphWindowBounds, trackExtreme, type TrackDef } from '../render/graphModel';
+  import { buildTracks, trackBounds, trackExtreme, type TrackDef } from '../render/graphModel';
   import { cssVar } from '../render/theme';
 
   let {
@@ -11,6 +11,7 @@
     showRCP = true,
     showLCP = true,
     showWidth = false,
+    amplified = false,
   }: {
     probeHistory: ProbeReading[];
     numberRange: number;
@@ -19,16 +20,17 @@
     showRCP?: boolean;
     showLCP?: boolean;
     showWidth?: boolean;
+    amplified?: boolean;
   } = $props();
 
-  const AXIS_H = 14;
+  const AXIS_H = 18;
   const TRACK_H = 92;
 
   let canvasEl: HTMLCanvasElement;
   let cssW = $state(320);
 
   const tracks = $derived(
-    buildTracks(probeHistory, { contactAreaCenter, contactAreaWidth, showRCP, showLCP, showWidth }),
+    buildTracks(probeHistory, { contactAreaCenter, contactAreaWidth, showRCP, showLCP, showWidth, amplified }),
   );
   const heightPx = $derived(Math.max(1, tracks.length) * TRACK_H + AXIS_H * 2);
 
@@ -63,8 +65,8 @@
     ctx.fillStyle = cssVar('--graph-bg');
     ctx.fillRect(0, 0, w, h);
 
-    const L = 34;
-    const R = 34;
+    const L = 38;
+    const R = 38;
     const plotW = Math.max(1, w - L - R);
     const n = Math.max(1, defs.length);
     const trackH = (h - AXIS_H * 2) / n;
@@ -76,8 +78,8 @@
     // vertical grid
     for (let i = 0; i <= numberRange; i++) {
       const x = xFor(i);
-      ctx.strokeStyle = i % 10 === 0 ? gridCol : i % 5 === 0 ? gridCol + '99' : gridCol + '55';
-      ctx.lineWidth = i % 10 === 0 ? 1 : 0.5;
+      ctx.strokeStyle = i % 10 === 0 ? gridCol : i % 5 === 0 ? gridCol + 'cc' : gridCol + '99';
+      ctx.lineWidth = i % 10 === 0 ? 1 : i % 5 === 0 ? 0.6 : 0.5;
       ctx.beginPath();
       ctx.moveTo(x, plotTop);
       ctx.lineTo(x, plotBottom);
@@ -86,7 +88,7 @@
 
     // x-axis labels (top + bottom)
     ctx.fillStyle = cssVar('--text-secondary');
-    ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
+    ctx.font = '12px ui-monospace, SFMono-Regular, monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let i = 0; i <= numberRange; i += majorStep) {
@@ -110,7 +112,7 @@
       const top = plotTop + i * trackH;
       const bottom = top + trackH;
       const values = def.points.flatMap((p) => [p.lo, p.hi]);
-      const [lo, hi] = graphWindowBounds(values, def.fallback);
+      const [lo, hi] = trackBounds(values, def.fallback, amplified);
       const span = hi - lo || 1;
       const yFor = (v: number) => bottom - ((v - lo) / span) * trackH;
       const color = COLORS[def.label];
@@ -181,7 +183,7 @@
       // y scale labels (mid ± 0.5) at both margins
       const mid = Math.round(((lo + hi) / 2) * 2) / 2;
       ctx.fillStyle = color + 'cc';
-      ctx.font = '9px ui-monospace, monospace';
+      ctx.font = '11px ui-monospace, monospace';
       ctx.textBaseline = 'middle';
       for (const off of [0.5, 0, -0.5]) {
         const v = mid + off;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTracks, graphWindowBounds, trackExtreme } from '../../src/render/graphModel';
+import { buildTracks, graphWindowBounds, trackBounds, trackExtreme } from '../../src/render/graphModel';
 import type { ProbeReading } from '../../src/models/LockSession';
 
 function reading(pos: number, rcp: number, lcp: number, side: 'rcp' | 'lcp' | 'both'): ProbeReading {
@@ -28,6 +28,20 @@ describe('graphWindowBounds', () => {
     const [lo, hi] = graphWindowBounds([], 40);
     expect(lo).toBeLessThanOrEqual(39.5);
     expect(hi).toBeGreaterThanOrEqual(40.5);
+  });
+});
+
+describe('trackBounds', () => {
+  it('amplified zooms tight around the data (narrower than the reference window)', () => {
+    const [lo, hi] = trackBounds([50, 50.2], 50, true);
+    expect(hi - lo).toBeLessThan(1);
+    expect(lo).toBeLessThan(50);
+    expect(hi).toBeGreaterThan(50.2);
+  });
+
+  it('non-amplified uses the ±0.5 reference window', () => {
+    const [lo, hi] = trackBounds([50, 50.2], 50, false);
+    expect(hi - lo).toBeGreaterThanOrEqual(1);
   });
 });
 

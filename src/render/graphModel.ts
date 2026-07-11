@@ -21,6 +21,7 @@ export interface TrackOptions {
   showRCP?: boolean;
   showLCP?: boolean;
   showWidth?: boolean;
+  amplified?: boolean;
   precision?: number;
 }
 
@@ -37,8 +38,21 @@ export function graphWindowBounds(values: number[], fallback: number): [number, 
   return [lo, hi];
 }
 
+// Y-axis bounds for a track. Amplified mode zooms tight around the data (proportional pad)
+// so small variations fill the track; otherwise the fixed ±0.5 reference window is used.
+export function trackBounds(values: number[], fallback: number, amplified: boolean): [number, number] {
+  if (amplified && values.length) {
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = Math.max(max - min, 0.001);
+    const pad = Math.max(range * 0.15, 0.005);
+    return [min - pad, max + pad];
+  }
+  return graphWindowBounds(values, fallback);
+}
+
 export function buildTracks(readings: ProbeReading[], opts: TrackOptions): TrackDef[] {
-  const precision = opts.precision ?? 0.25;
+  const precision = opts.amplified ? 1 / 16 : (opts.precision ?? 0.25);
   const showRCP = opts.showRCP ?? true;
   const showLCP = opts.showLCP ?? true;
   const showWidth = opts.showWidth ?? false;
