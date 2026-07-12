@@ -5,6 +5,7 @@
   import SolveSheet from './SolveSheet.svelte';
   import IsolationPanel from './IsolationPanel.svelte';
   import IsolationTests from './IsolationTests.svelte';
+  import Candidates from './Candidates.svelte';
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
@@ -13,6 +14,7 @@
   let showWidth = $state(false);
   let amplified = $state(false);
   let sheetDismissed = $state(false);
+  let dialView = $state<'dial' | 'notes'>('dial'); // dial box ↔ candidate/notes toggle
 
   // Wide (Mac/iPad): graph on top, dial + controls side-by-side below.
   // Narrow (iPhone): graph on top, tabbed Dial/Controls below.
@@ -30,24 +32,38 @@
 
 {#snippet dialPane()}
   <div class="dial-pane">
-    <!-- Wheels shown outermost-first (W1 = first digit dialed / last picked up), matching
-         real safecracking + the app. Internal array is cam-adjacent-first, so reverse it. -->
-    <div class="wheel-readout">{store.wheelPositions.slice().reverse().map((p) => p.toFixed(0)).join('   –   ')}</div>
-    <Dial
-      numberRange={store.numberRange}
-      dialPosition={store.dialPosition}
-      contactAreaCenter={store.profile.contactAreaCenter}
-      contactAreaWidth={store.profile.contactAreaWidth}
-      solved={store.solvePhase === 'solved'}
-      flashCounter={store.ledFlashCounter}
-      onRotate={(d, v) => store.rotate(d, v)}
-      onProbe={() => store.probeNow()}
-    />
-    {#if store.solvePhase === 'solved'}
-      <p class="hint open">Cracked! 🎉</p>
-    {:else}
-      <p class="hint">Dial the combination — sweep clockwise through the top to open.</p>
-    {/if}
+    <div class="dial-box">
+      <div class="dial-header">
+        <!-- Wheel positions shown outermost-first (W1 = first digit dialed). -->
+        <span class="wheel-readout">{store.wheelPositions.slice().reverse().map((p) => p.toFixed(0)).join(' – ')}</span>
+        <div class="seg">
+          <button class:on={dialView === 'dial'} onclick={() => (dialView = 'dial')} title="Dial" aria-label="Dial">◎</button>
+          <button class:on={dialView === 'notes'} onclick={() => (dialView = 'notes')} title="Candidates & notes" aria-label="Candidates & notes">✎</button>
+        </div>
+      </div>
+
+      {#if dialView === 'dial'}
+        <div class="dial-body">
+          <Dial
+            numberRange={store.numberRange}
+            dialPosition={store.dialPosition}
+            contactAreaCenter={store.profile.contactAreaCenter}
+            contactAreaWidth={store.profile.contactAreaWidth}
+            solved={store.solvePhase === 'solved'}
+            flashCounter={store.ledFlashCounter}
+            onRotate={(d, v) => store.rotate(d, v)}
+            onProbe={() => store.probeNow()}
+          />
+          {#if store.solvePhase === 'solved'}
+            <p class="hint open">Cracked! 🎉</p>
+          {:else}
+            <p class="hint">Dial the combination — sweep clockwise through the top to open.</p>
+          {/if}
+        </div>
+      {:else}
+        <Candidates {store} />
+      {/if}
+    </div>
   </div>
 {/snippet}
 
@@ -213,12 +229,54 @@
     align-items: center;
     gap: 0.75rem;
   }
+  .dial-box {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    overflow: hidden;
+  }
+  .dial-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--divider);
+  }
   .wheel-readout {
     font-family: ui-monospace, SFMono-Regular, monospace;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     color: var(--text);
+  }
+  .seg {
+    display: flex;
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .seg button {
+    padding: 0.25rem 0.6rem;
+    border: none;
+    background: var(--card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .seg button.on {
+    background: var(--accent-blue);
+    color: #fff;
+  }
+  .dial-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
   }
   .controls-pane {
     width: 100%;

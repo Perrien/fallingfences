@@ -22,6 +22,9 @@ export class GameStore {
   efficiency = $state(0);
   selectedWheelIndex = $state(0);
   isolationTests = $state<WheelIsolationTest[]>([]);
+  // Player annotations, one per internal wheel index (0 = cam-adjacent). Free-text candidate
+  // (often one number, sometimes several like "10, 23") + notes. Session-only for now.
+  wheelNotes = $state<{ candidate: string; notes: string }[]>([]);
 
   readonly profile: LockProfile;
   readonly difficultyRating: number;
@@ -30,6 +33,7 @@ export class GameStore {
     this.game = new GameState(profile, combination);
     this.profile = profile;
     this.difficultyRating = this.game.difficultyRating;
+    this.wheelNotes = Array.from({ length: profile.wheelCount }, () => ({ candidate: '', notes: '' }));
     this.sync();
   }
 
@@ -114,6 +118,19 @@ export class GameStore {
   autoRunIsolationTest(id: string) {
     this.game.autoRunIsolationTest(id);
     this.sync();
+  }
+  setCandidate(wheelIndex: number, value: string) {
+    if (this.wheelNotes[wheelIndex]) this.wheelNotes[wheelIndex].candidate = value;
+  }
+  // Append a value to a wheel's candidate field (comma-separated), or set it if empty.
+  appendCandidate(wheelIndex: number, value: string) {
+    const note = this.wheelNotes[wheelIndex];
+    if (!note) return;
+    const existing = note.candidate.trim();
+    note.candidate = existing === '' ? value : `${existing}, ${value}`;
+  }
+  setNote(wheelIndex: number, value: string) {
+    if (this.wheelNotes[wheelIndex]) this.wheelNotes[wheelIndex].notes = value;
   }
   erase() {
     this.game.eraseProbeHistory();

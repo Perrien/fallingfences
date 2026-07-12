@@ -93,6 +93,17 @@
               </tbody>
             </table>
           </div>
+
+          {#if winner !== null}
+            <div class="card-foot">
+              <button
+                class="setcand"
+                onclick={() => store.appendCandidate(wc - 1 - (winner - 2), fmt(test.testPosition))}
+              >
+                Set Candidate — {test.rows[winner].label}: {fmt(test.testPosition)}
+              </button>
+            </div>
+          {/if}
         </div>
       {/each}
     </div>
@@ -241,5 +252,20 @@
   }
   tr.winner td {
     color: var(--solve);
+  }
+  .card-foot {
+    padding: 0.5rem 0.7rem 0.6rem;
+    border-top: 1px solid var(--divider);
+  }
+  .setcand {
+    width: 100%;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--solve);
+    background: color-mix(in srgb, var(--solve) 12%, transparent);
+    border: none;
+    border-radius: 5px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
   }
 </style>
