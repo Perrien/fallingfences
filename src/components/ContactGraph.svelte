@@ -180,18 +180,36 @@
         ctx.fillText(extreme.toFixed(2), lx, def.isMin ? y + 3 : y - 3);
       }
 
-      // y scale labels (mid ± 0.5) at both margins
-      const mid = Math.round(((lo + hi) / 2) * 2) / 2;
+      // y scale labels
       ctx.fillStyle = color + 'cc';
       ctx.font = '11px ui-monospace, monospace';
       ctx.textBaseline = 'middle';
-      for (const off of [0.5, 0, -0.5]) {
-        const v = mid + off;
-        const y = Math.max(top, Math.min(bottom, yFor(v)));
-        ctx.textAlign = 'right';
-        ctx.fillText(v.toFixed(1), L - 3, y);
-        ctx.textAlign = 'left';
-        ctx.fillText(v.toFixed(1), L + plotW + 3, y);
+      if (amplified && values.length) {
+        // Amplified: label the data min / mid / max — these sit inside the padded bounds,
+        // so they land in the track interior (no clamping, no collision at dividers).
+        const dmin = Math.min(...values);
+        const dmax = Math.max(...values);
+        let prevY = -Infinity;
+        for (const v of [dmax, (dmin + dmax) / 2, dmin]) {
+          const y = Math.max(top, Math.min(bottom, yFor(v)));
+          if (Math.abs(y - prevY) < 12) continue; // skip when the data range is tiny
+          ctx.textAlign = 'right';
+          ctx.fillText(v.toFixed(2), L - 3, y);
+          ctx.textAlign = 'left';
+          ctx.fillText(v.toFixed(2), L + plotW + 3, y);
+          prevY = y;
+        }
+      } else {
+        // Reference window: nice round mid ± 0.5 ticks.
+        const mid = Math.round(((lo + hi) / 2) * 2) / 2;
+        for (const off of [0.5, 0, -0.5]) {
+          const v = mid + off;
+          const y = Math.max(top, Math.min(bottom, yFor(v)));
+          ctx.textAlign = 'right';
+          ctx.fillText(v.toFixed(1), L - 3, y);
+          ctx.textAlign = 'left';
+          ctx.fillText(v.toFixed(1), L + plotW + 3, y);
+        }
       }
     });
   }
