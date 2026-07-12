@@ -13,7 +13,6 @@ export class GameStore {
 
   dialPosition = $state(0);
   solvePhase = $state<SolvePhase>('manipulating');
-  boltTravelProgress = $state(0);
   currentReading = $state<ContactPointReading | null>(null);
   probeHistory = $state<ProbeReading[]>([]);
   wheelPositions = $state<number[]>([]);
@@ -52,7 +51,6 @@ export class GameStore {
   private sync() {
     this.dialPosition = this.game.dialPosition;
     this.solvePhase = this.game.solvePhase;
-    this.boltTravelProgress = this.game.boltTravelProgress;
     this.currentReading = this.game.currentReading;
     this.probeHistory = [...this.game.session.probeHistory];
     this.wheelPositions = this.game.wheels.map((w) => w.currentPosition);
@@ -84,12 +82,6 @@ export class GameStore {
   setSelectedWheel(index: number) {
     this.game.selectedWheelIndex = index;
     this.selectedWheelIndex = index;
-  }
-  // Test a deduced combination — opens the lock if all gates are correct. Returns success.
-  testCombination(guesses: number[]): boolean {
-    const opened = this.game.testCombination(guesses);
-    this.sync();
-    return opened;
   }
   erase() {
     this.game.eraseProbeHistory();

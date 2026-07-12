@@ -13,8 +13,9 @@ import { AngleNormalizer } from './AngleNormalizer';
 import { difficultyRating } from '../models/difficulty';
 import { randomSeed } from '../models/LockProfile';
 
-// manipulating → noseDropped (gates aligned + dial in contact area) → solved (≈15° bolt travel).
-export type SolvePhase = 'manipulating' | 'noseDropped' | 'solved';
+// The lock opens when the dial is swept clockwise (numbers decreasing) through the contact-area
+// center while every wheel sits within its gate tolerance — i.e. you dial the combination in.
+export type SolvePhase = 'manipulating' | 'solved';
 
 const VELOCITY_SMOOTHING = 0.3;
 const SNAP_GRANULARITY = 0.5;
@@ -42,7 +43,6 @@ export class GameState {
   private parkedWheelPositions = new Map<number, number>();
   private noiseRNG: SeededRNG;
   private wasInContactArea = false;
-  private boltTravelAccumulated = 0.0;
   private smoothedVelocity = 0.0;
   private lastCoupledIndices = new Set<number>();
 
@@ -74,15 +74,6 @@ export class GameState {
   get difficultyRating(): number {
     const fgCount = this.wheels.reduce((s, w) => s + w.falseGates.length, 0);
     return difficultyRating(this.profile, fgCount);
-  }
-
-  private get boltTravelThreshold(): number {
-    return (15.0 / 360.0) * this.profile.numberRange;
-  }
-
-  get boltTravelProgress(): number {
-    if (this.boltTravelThreshold <= 0) return 0;
-    return Math.min(1.0, this.boltTravelAccumulated / this.boltTravelThreshold);
   }
 
   // --- Dial rotation. Positive = CCW (left), negative = CW (right). ---
@@ -224,29 +215,6 @@ export class GameState {
     this.combinationRevealed = true;
   }
 
-  // Test a deduced combination: guesses[i] is the gate for wheel i. If every wheel is within
-  // gateWidth/2 of its true gate, the lock opens (models successfully dialing it in). Returns
-  // whether it opened; on failure nothing changes (no hint about which wheel was wrong).
-  testCombination(guesses: number[]): boolean {
-    const range = this.profile.numberRange;
-    const tol = this.profile.gateWidth / 2;
-    const ok = this.wheels.every(
-      (w, i) =>
-        guesses[i] !== undefined &&
-        AngleNormalizer.circularDistance(guesses[i], w.gatePosition, range) <= tol,
-    );
-    if (ok) {
-      this.wheels.forEach((w, i) => {
-        w.currentPosition = AngleNormalizer.normalizePosition(guesses[i], range);
-        this.parkedWheelPositions.set(i, w.currentPosition);
-      });
-      this.solvePhase = 'solved';
-      this.session.solvedAt = Date.now();
-      this.updateWheelConfiguration();
-    }
-    return ok;
-  }
-
   eraseProbeHistory(): void {
     this.session.probeHistory = [];
   }
@@ -355,45 +323,37 @@ export class GameState {
     );
   }
 
+  // The lock opens when the dial sweeps clockwise (delta < 0) across the contact-area center
+  // while every wheel is within its gate tolerance — the tactile "dial it in and it opens".
   private checkSolvePhase(delta: number, range: number): void {
+    if (this.solvePhase === 'solved') return;
+    if (delta >= 0) return; // only a clockwise (decreasing) sweep opens it
+
     const p = this.profile;
     const gatesAligned = this.wheels.every(
       (w) => AngleNormalizer.circularDistance(w.currentPosition, w.gatePosition, range) <= p.gateWidth / 2.0,
     );
-    const inContactArea =
-      AngleNormalizer.circularDistance(this.dialPosition, p.contactAreaCenter, range) <= p.contactAreaWidth / 2.0;
+    if (!gatesAligned) return;
 
-    switch (this.solvePhase) {
-      case 'manipulating':
-        if (gatesAligned && inContactArea) {
-          this.solvePhase = 'noseDropped';
-          this.boltTravelAccumulated = 0.0;
-        }
-        break;
-      case 'noseDropped':
-        if (!gatesAligned) {
-          this.solvePhase = 'manipulating';
-          this.boltTravelAccumulated = 0.0;
-          return;
-        }
-        if (delta < 0) {
-          this.boltTravelAccumulated += Math.abs(delta);
-        } else {
-          this.boltTravelAccumulated = Math.max(0, this.boltTravelAccumulated - delta);
-        }
-        if (this.boltTravelAccumulated >= this.boltTravelThreshold) {
-          this.solvePhase = 'solved';
-          this.session.solvedAt = Date.now();
-        } else if (this.boltTravelAccumulated <= 0 && !inContactArea) {
-          this.solvePhase = 'manipulating';
-        }
-        break;
-      case 'solved':
-        if (delta > 0) {
-          this.solvePhase = 'noseDropped';
-          this.boltTravelAccumulated = Math.max(0, this.boltTravelThreshold - delta);
-        }
-        break;
+    // Did this step cross the contact-area center? Compare center-relative signed offsets
+    // before and after the step; a sign change (or landing on it) with a small gap = a crossing.
+    const prev = AngleNormalizer.normalizePosition(this.dialPosition - delta, range);
+    const before = signedOffset(prev, p.contactAreaCenter, range);
+    const after = signedOffset(this.dialPosition, p.contactAreaCenter, range);
+    const crossed =
+      before === 0 || after === 0 || (Math.sign(before) !== Math.sign(after) && Math.abs(before) < range / 4);
+
+    if (crossed) {
+      this.solvePhase = 'solved';
+      this.session.solvedAt = Date.now();
     }
   }
+}
+
+// Signed shortest-arc offset of `pos` from `ref`, in (−range/2, range/2].
+function signedOffset(pos: number, ref: number, range: number): number {
+  let d = (pos - ref) % range;
+  if (d < -range / 2) d += range;
+  else if (d > range / 2) d -= range;
+  return d;
 }

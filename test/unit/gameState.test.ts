@@ -55,30 +55,37 @@ describe('GameState', () => {
     expect(g.session.probeHistory.length).toBeGreaterThan(10);
   });
 
-  it('dialing to aligned gates in the contact area, then CW bolt travel, solves', () => {
+  it('sweeping clockwise through the contact-area center with gates aligned opens the lock', () => {
     const g = new GameState(testProfile(), combo);
     // Park each wheel on its gate so rotation doesn't disturb alignment.
     g.parkWheel(0, 10);
     g.parkWheel(1, 20);
     g.parkWheel(2, 30);
 
-    // Bring the dial into the contact area (center 20) → nose drops.
-    g.rotate(20);
-    expect(g.solvePhase).toBe('noseDropped');
-
-    // CW travel past the bolt threshold (15° ≈ 1.667 on a 40-dial) → solved.
-    g.rotate(-3);
+    // Sweep the dial clockwise (negative) across the contact-area center (20) → opens.
+    g.rotate(30); // dial to ~30 (above the center)
+    expect(g.solvePhase).toBe('manipulating');
+    g.rotate(-15); // sweep CW down through 20
     expect(g.solvePhase).toBe('solved');
     expect(g.session.solvedAt).not.toBeNull();
   });
 
-  it('rotating CCW does not solve without bolt retraction', () => {
+  it('sweeping clockwise through center does NOT open when gates are misaligned', () => {
+    const g = new GameState(testProfile(), combo);
+    g.parkWheel(0, 10);
+    g.parkWheel(1, 20);
+    g.parkWheel(2, 35); // wheel 2 off its gate (30)
+    g.rotate(30);
+    g.rotate(-15); // sweep through center, but gates not aligned
+    expect(g.solvePhase).not.toBe('solved');
+  });
+
+  it('sweeping counter-clockwise through center does not open (wrong direction)', () => {
     const g = new GameState(testProfile(), combo);
     g.parkWheel(0, 10);
     g.parkWheel(1, 20);
     g.parkWheel(2, 30);
-    g.rotate(20); // noseDropped
-    g.rotate(20); // more CCW — springs bolt back, never solves
+    g.rotate(10); // CCW up through 20 — wrong direction
     expect(g.solvePhase).not.toBe('solved');
   });
 
@@ -120,15 +127,5 @@ describe('GameState', () => {
     const after = g.wheels.map((w) => w.currentPosition);
     expect(after[0]).toBeCloseTo(before[0], 6);
     expect(after[2]).toBeCloseTo(before[2], 6);
-  });
-
-  it('testCombination opens on the true gates and fails otherwise', () => {
-    const g = new GameState(testProfile(), combo);
-    expect(g.testCombination([0, 0, 0])).toBe(false);
-    expect(g.solvePhase).not.toBe('solved');
-    const gates = g.session.combination.gatePositions;
-    expect(g.testCombination(gates)).toBe(true);
-    expect(g.solvePhase).toBe('solved');
-    expect(g.session.solvedAt).not.toBeNull();
   });
 });

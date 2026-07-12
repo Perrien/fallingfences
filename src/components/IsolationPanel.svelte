@@ -35,24 +35,28 @@
     });
     store.autoProbe(map, Number(start), Number(step), Number(end), testWheel);
   }
+
+  // Display wheels outermost-first (Wheel 1 = outermost = first digit dialed). The internal
+  // array is cam-adjacent-first, so row for display "Wheel d" is internal index wheelCount − d.
+  const rows = $derived(locks.map((_, i) => i).reverse());
 </script>
 
 <section class="iso">
   <div class="iso-head">Isolation · auto-probe</div>
 
   <div class="wheels">
-    {#each locks as l, i (i)}
+    {#each rows as i (i)}
       <div class="wheel-row" class:test={testWheel === i}>
         <label class="testradio">
           <input type="radio" name="testwheel" checked={testWheel === i} onchange={() => selectTest(i)} />
-          Wheel {i + 1}
+          Wheel {store.wheelCount - i}
         </label>
         {#if testWheel === i}
           <span class="state test-state">testing · charted</span>
         {:else}
-          <label class="lockbox"><input type="checkbox" bind:checked={l.locked} /> lock</label>
-          <input class="pos" type="number" min="0" max={store.numberRange - 1} bind:value={l.pos} disabled={!l.locked} />
-          <span class="state">{l.locked ? `@ ${l.pos}` : 'free'}</span>
+          <label class="lockbox"><input type="checkbox" bind:checked={locks[i].locked} /> lock</label>
+          <input class="pos" type="number" min="0" max={store.numberRange - 1} bind:value={locks[i].pos} disabled={!locks[i].locked} />
+          <span class="state">{locks[i].locked ? `@ ${locks[i].pos}` : 'free'}</span>
         {/if}
       </div>
     {/each}

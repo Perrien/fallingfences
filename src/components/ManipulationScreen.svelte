@@ -4,7 +4,6 @@
   import ContactGraph from './ContactGraph.svelte';
   import SolveSheet from './SolveSheet.svelte';
   import IsolationPanel from './IsolationPanel.svelte';
-  import CombinationEntry from './CombinationEntry.svelte';
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
@@ -30,7 +29,9 @@
 
 {#snippet dialPane()}
   <div class="dial-pane">
-    <div class="wheel-readout">{store.wheelPositions.map((p) => p.toFixed(0)).join('   –   ')}</div>
+    <!-- Wheels shown outermost-first (W1 = first digit dialed / last picked up), matching
+         real safecracking + the app. Internal array is cam-adjacent-first, so reverse it. -->
+    <div class="wheel-readout">{store.wheelPositions.slice().reverse().map((p) => p.toFixed(0)).join('   –   ')}</div>
     <Dial
       numberRange={store.numberRange}
       dialPosition={store.dialPosition}
@@ -41,11 +42,10 @@
       onRotate={(d, v) => store.rotate(d, v)}
       onProbe={() => store.probeNow()}
     />
-    {#if store.solvePhase === 'noseDropped'}
-      <div class="bolt"><div class="bolt-fill" style={`width:${Math.round(store.boltTravelProgress * 100)}%`}></div></div>
-      <p class="hint">Gates aligned — turn right to retract the bolt.</p>
-    {:else if store.solvePhase === 'solved'}
+    {#if store.solvePhase === 'solved'}
       <p class="hint open">Cracked! 🎉</p>
+    {:else}
+      <p class="hint">Dial the combination — sweep clockwise through the top to open.</p>
     {/if}
   </div>
 {/snippet}
@@ -53,11 +53,10 @@
 {#snippet controlsPane()}
   <div class="controls-pane">
     <IsolationPanel {store} />
-    <CombinationEntry {store} />
 
     <details class="debug" bind:open={showGates}>
       <summary>Debug: show gate positions</summary>
-      <p>Gates: {store.gatePositions.map((g) => g.toFixed(0)).join(' · ')}</p>
+      <p>Gates: {store.gatePositions.slice().reverse().map((g) => g.toFixed(0)).join(' · ')}</p>
       <button onclick={() => store.debugAlignToGates()}>Align wheels to gates</button>
     </details>
   </div>
@@ -113,7 +112,7 @@
     efficiency={store.efficiency}
     manualSweepCount={store.manualSweepCount}
     lifetimeProbeCount={store.lifetimeProbeCount}
-    gatePositions={store.gatePositions}
+    gatePositions={store.gatePositions.slice().reverse()}
     difficulty={store.difficultyRating}
     onNewLock={onExit}
     onClose={() => (sheetDismissed = true)}
@@ -232,18 +231,6 @@
     border-color: var(--accent-blue);
   }
 
-  .bolt {
-    width: min(72vw, 340px);
-    height: 8px;
-    border-radius: 4px;
-    background: var(--card);
-    overflow: hidden;
-  }
-  .bolt-fill {
-    height: 100%;
-    background: var(--accent-gold);
-    transition: width 0.1s linear;
-  }
   .hint {
     margin: 0;
     font-size: 0.85rem;
