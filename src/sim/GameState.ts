@@ -29,7 +29,9 @@ export class GameState {
 
   autoReadingEnabled = false;
   measurementNoiseEnabled = true;
-  velocityThreshold = 0.75;
+  // Auto-read fires only below this dial speed (increments/second). Scaled by dial size in
+  // the constructor: a bigger dial needs a higher inc/sec for the same feel. Baseline ~3 @ 40.
+  velocityThreshold = 3;
   selectedWheelIndex: number;
   ledFlashCounter = 0;
   manualSweepCount = 0;
@@ -58,6 +60,8 @@ export class GameState {
     // from the seeded, position-consistent surface noise baked into the wheels.
     this.noiseRNG = new SeededRNG(randomSeed());
     this.selectedWheelIndex = profile.wheelCount - 1;
+    // Dial-relative auto-read cutoff: ~3 inc/s on a 40-dial, proportionally higher on bigger dials.
+    this.velocityThreshold = 3 * (profile.numberRange / 40);
     for (let i = 0; i < this.wheels.length; i++) {
       this.wheels[i].currentPosition = this.positionEngine.positions[i];
     }
@@ -82,10 +86,12 @@ export class GameState {
   }
 
   // --- Dial rotation. Positive = CCW (left), negative = CW (right). ---
-  rotate(delta: number): void {
+  // `velocity` is the dial speed in increments/second (from the input layer); auto-read on
+  // sweep only fires when the smoothed speed is below velocityThreshold, so fast passes don't read.
+  rotate(delta: number, velocity = 0): void {
     if (this.solvePhase === 'solved' && delta < 0) return;
     this.smoothedVelocity =
-      (1.0 - VELOCITY_SMOOTHING) * this.smoothedVelocity + VELOCITY_SMOOTHING * Math.abs(delta);
+      (1.0 - VELOCITY_SMOOTHING) * this.smoothedVelocity + VELOCITY_SMOOTHING * velocity;
     const range = this.profile.numberRange;
     const maxStep = this.profile.contactAreaWidth / 2.0;
     const sign = delta > 0 ? 1.0 : -1.0;

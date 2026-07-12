@@ -30,17 +30,13 @@
   --graph-grid: #8a8a92;
   --graph-bg: #f8f8fa;
 
-  /* Dial (light face to suit the light theme; silver bezel, dark ticks/numbers) */
-  --dial-bezel-outer: #9a9aa2;
-  --dial-bezel-inner: #cacace;
-  --dial-face: #edeef1;
-  --dial-tick: #6a6a70;
+  /* Dial — light aluminium ring + dark centre knob (the Probe button), app-matched.
+   * The aluminium/knurl material shades live in Dial.svelte (self-contained metal finish). */
+  --dial-bezel-outer: #38383d;
+  --dial-face: #17171b;
+  --dial-tick: #26262a;
   --dial-label: #1a1a1c;
   --dial-reference: #ff3b30;
-  --dial-knob-rim: #c0c0c6;
-  --dial-knob-core: #dcdce0;
-  --dial-position: #3a7cb8;
-  --contact-area: rgba(154, 122, 40, 0.22);
 
   /* Structure */
   --radius: 10px;

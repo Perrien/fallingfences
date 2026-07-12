@@ -26,22 +26,21 @@
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   });
-
-  const phaseLabel = $derived(
-    store.solvePhase === 'solved' ? 'OPEN' : store.solvePhase === 'noseDropped' ? 'NOSE DROPPED' : 'MANIPULATING',
-  );
 </script>
 
 {#snippet dialPane()}
   <div class="dial-pane">
+    <div class="wheel-readout">{store.wheelPositions.map((p) => p.toFixed(0)).join('   –   ')}</div>
     <Dial
       numberRange={store.numberRange}
       dialPosition={store.dialPosition}
       contactAreaCenter={store.profile.contactAreaCenter}
       contactAreaWidth={store.profile.contactAreaWidth}
-      onRotate={(d) => store.rotate(d)}
+      solved={store.solvePhase === 'solved'}
+      flashCounter={store.ledFlashCounter}
+      onRotate={(d, v) => store.rotate(d, v)}
+      onProbe={() => store.probeNow()}
     />
-    <div class={`phase phase-${store.solvePhase}`}>{phaseLabel}</div>
     {#if store.solvePhase === 'noseDropped'}
       <div class="bolt"><div class="bolt-fill" style={`width:${Math.round(store.boltTravelProgress * 100)}%`}></div></div>
       <p class="hint">Gates aligned — turn right to retract the bolt.</p>
@@ -54,7 +53,6 @@
 {#snippet controlsPane()}
   <div class="controls-pane">
     <div class="controls">
-      <button class="primary" onclick={() => store.probeNow()}>Probe</button>
       <button onclick={() => store.sweepAll(0, 2, store.numberRange - 1)}>Sweep all</button>
       <button onclick={() => store.erase()}>Clear</button>
     </div>
@@ -217,6 +215,13 @@
     align-items: center;
     gap: 0.75rem;
   }
+  .wheel-readout {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
   .controls-pane {
     width: 100%;
     max-width: 500px;
@@ -248,18 +253,6 @@
     border-color: var(--accent-blue);
   }
 
-  .phase {
-    font-size: 0.8rem;
-    letter-spacing: 0.12em;
-    font-weight: 700;
-    color: var(--text-tertiary);
-  }
-  .phase-noseDropped {
-    color: var(--accent-gold);
-  }
-  .phase-solved {
-    color: var(--solve);
-  }
   .bolt {
     width: min(72vw, 340px);
     height: 8px;
@@ -293,11 +286,6 @@
     color: var(--text);
     cursor: pointer;
     font-size: 0.95rem;
-  }
-  button.primary {
-    background: var(--accent-blue);
-    border-color: var(--accent-blue);
-    color: #fff;
   }
   .readout {
     display: flex;

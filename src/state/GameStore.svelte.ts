@@ -67,8 +67,8 @@ export class GameStore {
     }
   }
 
-  rotate(delta: number) {
-    this.game.rotate(delta);
+  rotate(delta: number, velocity = 0) {
+    this.game.rotate(delta, velocity);
     this.sync();
   }
   probeNow() {
