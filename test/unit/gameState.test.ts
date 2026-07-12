@@ -85,6 +85,7 @@ describe('GameState', () => {
   it('manual probes accumulate at distinct tracked-wheel positions (all wheels coupled)', () => {
     const g = new GameState(testProfile(), combo);
     g.measurementNoiseEnabled = false;
+    g.autoReadingEnabled = false; // count only the explicit probeNow() calls
     g.rotate(160); // continuous CCW — picks up all 3 wheels so they move together
     const trackedBefore = g.wheels[2].currentPosition;
     g.probeNow();
@@ -101,6 +102,7 @@ describe('GameState', () => {
   it('autoProbe isolates the free wheel and restores the others', () => {
     const g = new GameState(testProfile(), combo);
     g.measurementNoiseEnabled = false;
+    g.autoReadingEnabled = false; // isolate autoProbe from survey auto-reads
     g.rotate(200); // scramble wheel positions
     const before = g.wheels.map((w) => w.currentPosition);
 

@@ -18,8 +18,6 @@ export class GameStore {
   probeHistory = $state<ProbeReading[]>([]);
   wheelPositions = $state<number[]>([]);
   ledFlashCounter = $state(0);
-  autoReadingEnabled = $state(false);
-  measurementNoiseEnabled = $state(true);
   solveScore = $state<SolveScoreResult | null>(null);
   efficiency = $state(0);
   selectedWheelIndex = $state(0);
@@ -79,9 +77,13 @@ export class GameStore {
     this.game.sweepAll(start, step, stop);
     this.sync();
   }
-  autoProbe(locked: Map<number, number>, start = 0, step = 2, stop: number | null = null) {
-    this.game.autoProbe(locked, start, step, stop);
+  autoProbe(locked: Map<number, number>, start = 0, step = 2, stop: number | null = null, recordingWheelIndex: number | null = null) {
+    this.game.autoProbe(locked, start, step, stop, recordingWheelIndex);
     this.sync();
+  }
+  setSelectedWheel(index: number) {
+    this.game.selectedWheelIndex = index;
+    this.selectedWheelIndex = index;
   }
   // Test a deduced combination — opens the lock if all gates are correct. Returns success.
   testCombination(guesses: number[]): boolean {
@@ -97,13 +99,5 @@ export class GameStore {
   debugAlignToGates() {
     this.game.session.combination.gatePositions.forEach((g, i) => this.game.parkWheel(i, g));
     this.sync();
-  }
-  setAutoReading(on: boolean) {
-    this.game.autoReadingEnabled = on;
-    this.autoReadingEnabled = on;
-  }
-  setMeasurementNoise(on: boolean) {
-    this.game.measurementNoiseEnabled = on;
-    this.measurementNoiseEnabled = on;
   }
 }

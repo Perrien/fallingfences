@@ -27,8 +27,8 @@ export class GameState {
   wheelConfiguration: WheelConfiguration = { kind: 'allMoving' };
   solvePhase: SolvePhase = 'manipulating';
 
-  autoReadingEnabled = false;
-  measurementNoiseEnabled = true;
+  autoReadingEnabled = true; // always on (auto-read on sweep is the core interaction)
+  measurementNoiseEnabled = false; // always off in the web version
   // Auto-read fires only below this dial speed (increments/second). Scaled by dial size in
   // the constructor: a bigger dial needs a higher inc/sec for the same feel. Baseline ~3 @ 40.
   velocityThreshold = 3;
@@ -174,9 +174,15 @@ export class GameState {
   }
 
   // Auto-probe: park each wheel in `locked` at its position, sweep the remaining (free)
-  // wheels across [startAt, stopAt], recording against the first free wheel, then restore
-  // the prior park configuration. Port of SafeSimulator.autoProbe — the isolation workhorse.
-  autoProbe(locked: Map<number, number>, startAt: number, step: number, stopAt: number | null = null): void {
+  // wheels across [startAt, stopAt], recording against `recordingWheelIndex` (or the first free
+  // wheel if null), then restore the prior park configuration. Port of SafeSimulator.autoProbe.
+  autoProbe(
+    locked: Map<number, number>,
+    startAt: number,
+    step: number,
+    stopAt: number | null = null,
+    recordingWheelIndex: number | null = null,
+  ): void {
     if (step <= 0) return;
     const savedParked = new Map(this.parkedWheelPositions);
     const savedPositions = this.wheels.map((w) => w.currentPosition);
@@ -187,12 +193,15 @@ export class GameState {
       else this.unparkWheel(i);
     }
 
-    // Record against the first free wheel in display order (highest internal index).
-    let recordingIdx: number | null = null;
-    for (let i = this.wheels.length - 1; i >= 0; i--) {
-      if (!locked.has(i)) {
-        recordingIdx = i;
-        break;
+    // Record against the explicitly chosen wheel, else the first free wheel (highest index).
+    let recordingIdx = recordingWheelIndex;
+    if (recordingIdx === null || locked.has(recordingIdx)) {
+      recordingIdx = null;
+      for (let i = this.wheels.length - 1; i >= 0; i--) {
+        if (!locked.has(i)) {
+          recordingIdx = i;
+          break;
+        }
       }
     }
     if (recordingIdx !== null) this.selectedWheelIndex = recordingIdx;

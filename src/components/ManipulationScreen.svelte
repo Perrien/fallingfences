@@ -52,27 +52,6 @@
 
 {#snippet controlsPane()}
   <div class="controls-pane">
-    <div class="controls">
-      <button onclick={() => store.sweepAll(0, 2, store.numberRange - 1)}>Sweep all</button>
-      <button onclick={() => store.erase()}>Clear</button>
-    </div>
-
-    <div class="readout">
-      {#if store.currentReading}
-        <span>RCP <b>{store.currentReading.rcp.toFixed(2)}</b></span>
-        <span>LCP <b>{store.currentReading.lcp.toFixed(2)}</b></span>
-        <span>Width <b>{store.currentReading.width.toFixed(2)}</b></span>
-      {:else}
-        <span class="muted">No reading yet — probe or dial into the contact area.</span>
-      {/if}
-    </div>
-
-    <div class="toggles">
-      <label><input type="checkbox" bind:checked={store.autoReadingEnabled} onchange={(e) => store.setAutoReading(e.currentTarget.checked)} /> Auto-read on sweep</label>
-      <label><input type="checkbox" bind:checked={store.measurementNoiseEnabled} onchange={(e) => store.setMeasurementNoise(e.currentTarget.checked)} /> Measurement noise</label>
-      <span class="muted">{store.probeHistory.length} readings</span>
-    </div>
-
     <IsolationPanel {store} />
     <CombinationEntry {store} />
 
@@ -274,10 +253,6 @@
     color: var(--solve);
     font-weight: 700;
   }
-  .controls {
-    display: flex;
-    gap: 0.5rem;
-  }
   button {
     padding: 0.6rem 1rem;
     border-radius: 10px;
@@ -286,31 +261,6 @@
     color: var(--text);
     cursor: pointer;
     font-size: 0.95rem;
-  }
-  .readout {
-    display: flex;
-    gap: 1.25rem;
-    font-size: 0.95rem;
-  }
-  .readout b {
-    font-variant-numeric: tabular-nums;
-  }
-  .toggles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    align-items: center;
-    justify-content: center;
-  }
-  .toggles label {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-  .muted {
-    color: var(--text-tertiary);
   }
   .debug {
     font-size: 0.8rem;
