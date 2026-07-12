@@ -4,6 +4,7 @@
   import ContactGraph from './ContactGraph.svelte';
   import SolveSheet from './SolveSheet.svelte';
   import IsolationPanel from './IsolationPanel.svelte';
+  import IsolationTests from './IsolationTests.svelte';
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
@@ -16,7 +17,7 @@
   // Wide (Mac/iPad): graph on top, dial + controls side-by-side below.
   // Narrow (iPhone): graph on top, tabbed Dial/Controls below.
   let isWide = $state(false);
-  let tab = $state<'dial' | 'controls'>('dial');
+  let tab = $state<'dial' | 'controls' | 'isolation'>('dial');
 
   $effect(() => {
     const mq = window.matchMedia('(min-width: 900px)');
@@ -62,6 +63,12 @@
   </div>
 {/snippet}
 
+{#snippet isolationPane()}
+  <div class="isolation-pane">
+    <IsolationTests {store} />
+  </div>
+{/snippet}
+
 <main>
   <header>
     <button class="link" onclick={onExit}>‹ Locks</button>
@@ -92,16 +99,20 @@
     <div class="wide-body">
       {@render dialPane()}
       {@render controlsPane()}
+      {@render isolationPane()}
     </div>
   {:else}
     <div class="tabs">
       <button class:active={tab === 'dial'} onclick={() => (tab = 'dial')}>Dial</button>
       <button class:active={tab === 'controls'} onclick={() => (tab = 'controls')}>Controls</button>
+      <button class:active={tab === 'isolation'} onclick={() => (tab = 'isolation')}>Isolation</button>
     </div>
     {#if tab === 'dial'}
       {@render dialPane()}
-    {:else}
+    {:else if tab === 'controls'}
       {@render controlsPane()}
+    {:else}
+      {@render isolationPane()}
     {/if}
   {/if}
 </main>
@@ -152,7 +163,7 @@
 
   /* Graph spans the top at all sizes. */
   .graph {
-    width: min(96vw, 1000px);
+    width: min(96vw, 1200px);
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -171,11 +182,11 @@
     gap: 0.3rem;
   }
 
-  /* Wide: dial bottom-left, controls bottom-right. */
+  /* Wide: three panes below the graph — Dial | Controls | Isolation. */
   .wide-body {
-    width: min(96vw, 1000px);
+    width: min(96vw, 1200px);
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
     align-items: flex-start;
     justify-content: center;
   }
@@ -184,7 +195,16 @@
   }
   .wide-body .controls-pane {
     flex: 1 1 0;
-    max-width: 520px;
+    max-width: 420px;
+  }
+  .wide-body .isolation-pane {
+    flex: 1 1 0;
+    max-width: 480px;
+  }
+  .isolation-pane {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .dial-pane {

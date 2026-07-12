@@ -1,10 +1,11 @@
-// Bridge between the simulation and the UI — port of Simulation/SafeSimulator.swift (MVP core).
-// Plain class (unit-testable); the reactive Svelte wrapper is added with the UI. Isolation
-// tests, auto-probe, candidates, and snapshot/restore are deferred to Phase 2.
+// Bridge between the simulation and the UI — port of Simulation/SafeSimulator.swift.
+// Plain class (unit-testable); the reactive Svelte wrapper (GameStore) adds runes.
 import type { LockProfile } from '../models/LockProfile';
 import type { Combination } from '../models/Combination';
 import type { Wheel } from '../models/Wheel';
 import type { LockSession, ProbeReading, ContactSide, WheelConfiguration } from '../models/LockSession';
+import type { WheelIsolationTest } from '../models/WheelIsolationTest';
+import { buildTest, repopulateTest } from '../models/WheelIsolationTest';
 import { makeWheels } from './WheelFactory';
 import { probe, type ContactPointReading } from './ContactPointCalculator';
 import { WheelPositionEngine } from './WheelPositionEngine';
@@ -27,6 +28,7 @@ export class GameState {
   currentReading: ContactPointReading | null = null;
   wheelConfiguration: WheelConfiguration = { kind: 'allMoving' };
   solvePhase: SolvePhase = 'manipulating';
+  isolationTests: WheelIsolationTest[] = [];
 
   autoReadingEnabled = true; // always on (auto-read on sweep is the core interaction)
   measurementNoiseEnabled = false; // always off in the web version
@@ -213,6 +215,63 @@ export class GameState {
 
   revealCombination(): void {
     this.combinationRevealed = true;
+  }
+
+  // --- Wheel isolation tests (port of SafeSimulator isolation methods) ---
+  addIsolationTest(testPosition: number, controlPosition: number): void {
+    this.isolationTests.push(buildTest(this.wheels.length, testPosition, controlPosition));
+  }
+  removeIsolationTest(id: string): void {
+    this.isolationTests = this.isolationTests.filter((t) => t.id !== id);
+  }
+  repopulateIsolationTest(id: string, testPosition: number, controlPosition: number): void {
+    const t = this.isolationTests.find((x) => x.id === id);
+    if (t) repopulateTest(t, testPosition, controlPosition);
+  }
+  setIsolationRowPosition(testID: string, rowIndex: number, wheelIndex: number, position: number): void {
+    const t = this.isolationTests.find((x) => x.id === testID);
+    if (!t || rowIndex >= t.rows.length || wheelIndex >= t.rows[rowIndex].wheelPositions.length) return;
+    t.rows[rowIndex].wheelPositions[wheelIndex] = AngleNormalizer.normalizePosition(position, this.profile.numberRange);
+    t.rows[rowIndex].lcpReading = null;
+    t.rows[rowIndex].rcpReading = null;
+  }
+  // Copy the Test row's value for wheelIndex down every other row (clears those rows' readings).
+  fillIsolationColumn(testID: string, wheelIndex: number): void {
+    const t = this.isolationTests.find((x) => x.id === testID);
+    if (!t || t.rows.length === 0) return;
+    const value = t.rows[0].wheelPositions[wheelIndex];
+    for (let i = 1; i < t.rows.length; i++) {
+      if (t.rows[i].wheelPositions[wheelIndex] !== value) {
+        t.rows[i].wheelPositions[wheelIndex] = value;
+        t.rows[i].lcpReading = null;
+        t.rows[i].rcpReading = null;
+      }
+    }
+  }
+  // Run every row instantly: park wheels at the row's positions, probe noiseless, store results.
+  // Does not touch probeHistory; restores wheel/park state afterward.
+  autoRunIsolationTest(id: string): void {
+    const t = this.isolationTests.find((x) => x.id === id);
+    if (!t) return;
+    const savedParked = new Map(this.parkedWheelPositions);
+    const savedPositions = this.wheels.map((w) => w.currentPosition);
+
+    for (const row of t.rows) {
+      row.wheelPositions.forEach((pos, i) => this.parkWheel(i, pos));
+      const r = probe(this.wheels, this.profile);
+      row.lcpReading = r.lcp;
+      row.rcpReading = r.rcp;
+    }
+
+    this.parkedWheelPositions = savedParked;
+    for (let i = 0; i < this.wheels.length; i++) {
+      this.wheels[i].currentPosition = savedParked.get(i) ?? savedPositions[i];
+    }
+    this.positionEngine.restoreFromState(
+      this.dialPosition,
+      this.wheels.map((w) => w.currentPosition),
+    );
+    this.updateWheelConfiguration();
   }
 
   eraseProbeHistory(): void {

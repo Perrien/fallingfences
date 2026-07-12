@@ -6,6 +6,7 @@ import type { LockProfile } from '../models/LockProfile';
 import type { Combination } from '../models/Combination';
 import type { ProbeReading } from '../models/LockSession';
 import type { ContactPointReading } from '../sim/ContactPointCalculator';
+import type { WheelIsolationTest } from '../models/WheelIsolationTest';
 import { SolveScoreCalculator, type SolveScoreResult } from '../sim/SolveScoring';
 
 export class GameStore {
@@ -20,6 +21,7 @@ export class GameStore {
   solveScore = $state<SolveScoreResult | null>(null);
   efficiency = $state(0);
   selectedWheelIndex = $state(0);
+  isolationTests = $state<WheelIsolationTest[]>([]);
 
   readonly profile: LockProfile;
   readonly difficultyRating: number;
@@ -56,6 +58,11 @@ export class GameStore {
     this.wheelPositions = this.game.wheels.map((w) => w.currentPosition);
     this.ledFlashCounter = this.game.ledFlashCounter;
     this.selectedWheelIndex = this.game.selectedWheelIndex;
+    // Deep-ish clone so Svelte reacts to row/reading mutations inside the tests.
+    this.isolationTests = this.game.isolationTests.map((t) => ({
+      ...t,
+      rows: t.rows.map((r) => ({ ...r, wheelPositions: [...r.wheelPositions] })),
+    }));
     // Compute the solve score once, the moment the lock opens.
     if (this.game.solvePhase === 'solved' && this.solveScore === null) {
       this.efficiency = this.game.lifetimeProbeCount / (this.profile.wheelCount * this.profile.numberRange);
@@ -82,6 +89,31 @@ export class GameStore {
   setSelectedWheel(index: number) {
     this.game.selectedWheelIndex = index;
     this.selectedWheelIndex = index;
+  }
+  // --- Isolation tests ---
+  addIsolationTest(testPosition: number, controlPosition: number) {
+    this.game.addIsolationTest(testPosition, controlPosition);
+    this.sync();
+  }
+  removeIsolationTest(id: string) {
+    this.game.removeIsolationTest(id);
+    this.sync();
+  }
+  repopulateIsolationTest(id: string, tp: number, cp: number) {
+    this.game.repopulateIsolationTest(id, tp, cp);
+    this.sync();
+  }
+  setIsolationRowPosition(testID: string, rowIndex: number, wheelIndex: number, position: number) {
+    this.game.setIsolationRowPosition(testID, rowIndex, wheelIndex, position);
+    this.sync();
+  }
+  fillIsolationColumn(testID: string, wheelIndex: number) {
+    this.game.fillIsolationColumn(testID, wheelIndex);
+    this.sync();
+  }
+  autoRunIsolationTest(id: string) {
+    this.game.autoRunIsolationTest(id);
+    this.sync();
   }
   erase() {
     this.game.eraseProbeHistory();
