@@ -11,11 +11,17 @@
 - **Phase 1 — DONE (2026-07-11).** Ported WheelFactory, ContactPointCalculator,
   WheelPositionEngine, SolveScoring, GameState. Full MVP loop live: preset picker → canvas dial
   → probe/sweep → canvas contact graph → solve → score sheet, responsive.
-- **Phase 2 — in progress.** Shipped: isolation via **auto-probe** (radio-select the test wheel,
-  lock the others at chosen positions, sweep + chart the free one); app-matched responsive layout
-  (wide = graph banner + dial/controls; narrow = graph + Dial/Controls tabs).
-  Remaining Phase 2: circular/polar graph (narrow view), isolation test *tables*, candidates/scan
-  tracking, custom lock creation.
+- **Phase 2 — Standard depth, essentially complete (2026-07-13).** Shipped: **auto-probe** panel
+  (radio-select the test wheel, lock others at positions, start/end/step, Run); **wheel isolation
+  tests** (third pane: Test/Control + per-wheel rows, AUTO run, gate-candidate winner, Set
+  Candidate → candidates); **candidates & notes** (per-wheel, dial↔notes segmented toggle in the
+  dial box header); **Lock to Candidates** (selection shared with Auto Probe; locks the other
+  candidate wheels, leaves the selected one free to chart); **circular/polar graph** on the narrow
+  layout (cartesian on wide); **PWA icons** (from the app's Safeicon.png). Wide layout is three
+  panes — Dial | Controls(Auto Probe) | Isolation; narrow is graph + Dial/Controls/Isolation tabs.
+  **Remaining Phase 2:** remove/gate the debug "show gates / Align wheels" scaffolding; optional
+  shared panel/button primitives + typography sweep, iPhone landscape mode, solve spark, settings.
+  Deferred by user: multi-scan tracking, custom lock creation (can revisit).
 - **UI refinement pass (2026-07-11..12).** Light-only **design-token system** (`src/theme.css`,
   ported from the app's `Theme.swift` light palette) — single source of truth; every component +
   both canvases read tokens via `cssVar()`. Graph: larger axis labels, no title, RCP always-on +
@@ -24,17 +30,19 @@
   the Probe button (tap=probe, drag=rotate); red tick at the contact-area centre; wheel-position
   readout above the dial; green reader **LED** (idle drift + 0.45s flash on pickup/probe/auto-read);
   dial-relative auto-read velocity cutoff (~3 inc/s at 40-dial, scaled by numberRange).
-  Next: shared panel/button/field primitives + spacing/typography.
 - **Open by dialing (2026-07-12).** Removed typed combination entry. The lock now opens when the
   dial is swept **clockwise through the contact-area centre with every wheel within gate tolerance**
   — dial it in and it drops. SolvePhase simplified to `manipulating | solved` (bolt-travel model
   removed).
+- **Next up:** debug-scaffolding cleanup (small), then **Phase 3 (progression)** or **Phase 4
+  (Ultra)** — user to choose. **91 tests green** at this stopping point.
 - **Priority note (user):** persistence is LOW priority — build all other functionality first;
-  wire IndexedDB near the end. Free-dialing all wheels precisely onto their gates is the authentic
-  hard part; a guided-dialing assist is a possible future backlog item.
+  wire IndexedDB near the end. Multi-scan tracking on hold (Clear graph covers the need for now).
+  Free-dialing precisely onto gates is the authentic hard part; a guided-dialing assist is a
+  possible backlog item.
 - **Wheel numbering:** display is **outermost-first** (Wheel 1 = first digit dialed = last picked
   up), matching real safecracking + the app. Engine array is cam-adjacent-first (index 0); the UI
-  reverses for display only. (Corrected 2026-07-12 from the earlier raw-index labeling.)
+  reverses for display only.
 
 ## Context
 
@@ -195,11 +203,12 @@ This is an Apple-managed Mac; getting `npm` working took some doing. What was fo
   `ContactPointCalculator`, `WheelPositionEngine`, `SolveScoreCalculator`, `GameState` (as a
   plain class + `GameStore.svelte.ts` reactive wrapper). Plus `testCombination` (enter deduced
   gates → open). `locks` IndexedDB store deferred (persistence is low priority).
-- **Phase 2 — Standard depth (in progress).** ✅ Isolation via auto-probe (`IsolationPanel`:
-  radio-select test wheel + lock others at positions + start/end/step); ✅ app-matched responsive
-  layout; ✅ open-by-dialing solve; ✅ light design-token system + app-matched dial.
-  ⏳ Remaining: polar `CircularGraphView` (narrow view — queued next), isolation test *tables*,
-  candidates/scan tracking, custom lock creation, wheel notes, shared panel/button primitives.
+- **Phase 2 — Standard depth (essentially complete).** ✅ Auto-probe (`IsolationPanel`);
+  ✅ wheel isolation tests (`IsolationTests` — Test/Control rows, AUTO, gate-candidate winner,
+  Set Candidate); ✅ candidates & notes (`Candidates` — dial↔notes toggle, Lock to Candidates);
+  ✅ circular/polar graph (narrow); ✅ open-by-dialing; ✅ light design-token system + app dial;
+  ✅ PWA icons. ⏳ Remaining: remove/gate debug scaffolding; optional primitives/typography sweep,
+  iPhone landscape, solve spark, settings. Deferred by user: multi-scan tracking, custom lock creation.
 - **Phase 3 — Progression.** `ProgressionSheetView`, ranks (best-effort persistence).
 - **Phase 4 — Ultra tier.** `UltraProbeEngine`, `UltraManipulationView`, and the hard part:
   `UltraGraphGestureOverlay` (concurrent 1-finger drag / 2-finger pan / pinch) → a Pointer
