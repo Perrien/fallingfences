@@ -2,6 +2,7 @@
   import type { GameStore } from '../state/GameStore.svelte';
   import Dial from './Dial.svelte';
   import ContactGraph from './ContactGraph.svelte';
+  import CircularGraph from './CircularGraph.svelte';
   import SolveSheet from './SolveSheet.svelte';
   import IsolationPanel from './IsolationPanel.svelte';
   import IsolationTests from './IsolationTests.svelte';
@@ -100,15 +101,28 @@
       <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
       <label><input type="checkbox" bind:checked={amplified} /> Amplify</label>
     </div>
-    <ContactGraph
-      probeHistory={store.probeHistory}
-      numberRange={store.numberRange}
-      contactAreaCenter={store.profile.contactAreaCenter}
-      contactAreaWidth={store.profile.contactAreaWidth}
-      {showLCP}
-      {showWidth}
-      {amplified}
-    />
+    {#if isWide}
+      <ContactGraph
+        probeHistory={store.probeHistory}
+        numberRange={store.numberRange}
+        contactAreaCenter={store.profile.contactAreaCenter}
+        contactAreaWidth={store.profile.contactAreaWidth}
+        {showLCP}
+        {showWidth}
+        {amplified}
+      />
+    {:else}
+      <CircularGraph
+        probeHistory={store.probeHistory}
+        numberRange={store.numberRange}
+        contactAreaCenter={store.profile.contactAreaCenter}
+        contactAreaWidth={store.profile.contactAreaWidth}
+        dialPosition={store.dialPosition}
+        {showLCP}
+        {showWidth}
+        {amplified}
+      />
+    {/if}
   </div>
 
   {#if isWide}

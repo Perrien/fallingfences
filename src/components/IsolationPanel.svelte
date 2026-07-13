@@ -3,60 +3,48 @@
 
   let { store }: { store: GameStore } = $props();
 
-  // Per-wheel lock state (position is player-chosen). One wheel is the "test" wheel — it's
-  // left free and charted; the others can be locked at chosen positions.
-  let locks = $state<{ locked: boolean; pos: number }[]>([]);
-  let testWheel = $state(0);
+  // Lock config + test-wheel selection are shared via the store (so "Lock to Candidates" in
+  // the notes panel can drive them). Only the sweep range is local.
   let start = $state(0);
   let end = $state(0);
   let step = $state(2);
   let initialized = false;
 
   $effect(() => {
-    if (locks.length !== store.wheelCount) {
-      locks = Array.from({ length: store.wheelCount }, () => ({ locked: false, pos: 0 }));
-    }
-    if (!initialized) {
+    if (!initialized && store.numberRange > 0) {
       initialized = true;
-      testWheel = store.selectedWheelIndex;
       end = store.numberRange - 1;
     }
   });
 
-  function selectTest(i: number) {
-    testWheel = i;
-    store.setSelectedWheel(i);
-  }
-
   function run() {
     const map = new Map<number, number>();
-    locks.forEach((l, i) => {
-      if (i !== testWheel && l.locked) map.set(i, l.pos);
+    store.autoProbeLocks.forEach((l, i) => {
+      if (i !== store.selectedWheelIndex && l.locked) map.set(i, l.pos);
     });
-    store.autoProbe(map, Number(start), Number(step), Number(end), testWheel);
+    store.autoProbe(map, Number(start), Number(step), Number(end), store.selectedWheelIndex);
   }
 
-  // Display wheels outermost-first (Wheel 1 = outermost = first digit dialed). The internal
-  // array is cam-adjacent-first, so row for display "Wheel d" is internal index wheelCount − d.
-  const rows = $derived(locks.map((_, i) => i).reverse());
+  // Display wheels outermost-first (Wheel 1 = outermost). Internal array is cam-adjacent-first.
+  const rows = $derived(Array.from({ length: store.wheelCount }, (_, i) => i).reverse());
 </script>
 
 <section class="iso">
-  <div class="iso-head">Isolation · auto-probe</div>
+  <div class="iso-head">Auto Probe</div>
 
   <div class="wheels">
     {#each rows as i (i)}
-      <div class="wheel-row" class:test={testWheel === i}>
+      <div class="wheel-row" class:test={store.selectedWheelIndex === i}>
         <label class="testradio">
-          <input type="radio" name="testwheel" checked={testWheel === i} onchange={() => selectTest(i)} />
+          <input type="radio" name="testwheel" checked={store.selectedWheelIndex === i} onchange={() => store.setSelectedWheel(i)} />
           Wheel {store.wheelCount - i}
         </label>
-        {#if testWheel === i}
+        {#if store.selectedWheelIndex === i}
           <span class="state test-state">testing · charted</span>
         {:else}
-          <label class="lockbox"><input type="checkbox" bind:checked={locks[i].locked} /> lock</label>
-          <input class="pos" type="number" min="0" max={store.numberRange - 1} bind:value={locks[i].pos} disabled={!locks[i].locked} />
-          <span class="state">{locks[i].locked ? `@ ${locks[i].pos}` : 'free'}</span>
+          <label class="lockbox"><input type="checkbox" bind:checked={store.autoProbeLocks[i].locked} /> lock</label>
+          <input class="pos" type="number" min="0" max={store.numberRange - 1} bind:value={store.autoProbeLocks[i].pos} disabled={!store.autoProbeLocks[i].locked} />
+          <span class="state">{store.autoProbeLocks[i].locked ? `@ ${store.autoProbeLocks[i].pos}` : 'free'}</span>
         {/if}
       </div>
     {/each}

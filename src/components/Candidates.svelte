@@ -3,9 +3,9 @@
 
   let { store }: { store: GameStore } = $props();
 
-  // Wheels shown outermost-first: display index d (W{d+1}) → internal index wheelCount-1-d.
-  let selected = $state(0); // display index
-  const internal = $derived(store.wheelCount - 1 - selected);
+  // Selected wheel is shared with the Auto Probe panel via store.selectedWheelIndex (internal
+  // index). Display index d (W{d+1}) ↔ internal index wheelCount-1-d.
+  const selectedDisplay = $derived(store.wheelCount - 1 - store.selectedWheelIndex);
 
   // Button label: the wheel's candidate value, or 'X' when none entered.
   function label(displayIdx: number): string {
@@ -13,12 +13,14 @@
     const c = store.wheelNotes[idx]?.candidate ?? '';
     return c.trim() === '' ? 'X' : c;
   }
+
+  const anyCandidate = $derived(store.wheelNotes.some((n) => n.candidate.trim() !== ''));
 </script>
 
 <div class="cands">
   <div class="wheel-btns">
     {#each Array.from({ length: store.wheelCount }) as _, d (d)}
-      <button class="wbtn" class:sel={selected === d} onclick={() => (selected = d)}>
+      <button class="wbtn" class:sel={selectedDisplay === d} onclick={() => store.setSelectedWheel(store.wheelCount - 1 - d)}>
         <span class="wname">W{d + 1}</span>
         <span class="wval">{label(d)}</span>
       </button>
@@ -26,12 +28,12 @@
   </div>
 
   <label class="field">
-    <span class="flabel">Candidate — Wheel {selected + 1}</span>
+    <span class="flabel">Candidate — Wheel {selectedDisplay + 1}</span>
     <input
       type="text"
       placeholder="e.g. 23  (or 10, 23 for multiple)"
-      value={store.wheelNotes[internal]?.candidate ?? ''}
-      oninput={(e) => store.setCandidate(internal, e.currentTarget.value)}
+      value={store.wheelNotes[store.selectedWheelIndex]?.candidate ?? ''}
+      oninput={(e) => store.setCandidate(store.selectedWheelIndex, e.currentTarget.value)}
     />
   </label>
 
@@ -40,10 +42,14 @@
     <textarea
       rows="6"
       placeholder="Observations for this wheel…"
-      value={store.wheelNotes[internal]?.notes ?? ''}
-      oninput={(e) => store.setNote(internal, e.currentTarget.value)}
+      value={store.wheelNotes[store.selectedWheelIndex]?.notes ?? ''}
+      oninput={(e) => store.setNote(store.selectedWheelIndex, e.currentTarget.value)}
     ></textarea>
   </label>
+
+  <button class="lock-btn" disabled={!anyCandidate} onclick={() => store.lockToCandidates()}>
+    Lock to Candidates
+  </button>
 </div>
 
 <style>
@@ -112,5 +118,20 @@
   }
   .field input {
     font-family: ui-monospace, monospace;
+  }
+  .lock-btn {
+    margin-top: 0.25rem;
+    padding: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--accent-blue);
+    background: var(--accent-blue);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .lock-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 </style>

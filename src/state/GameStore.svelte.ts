@@ -25,6 +25,9 @@ export class GameStore {
   // Player annotations, one per internal wheel index (0 = cam-adjacent). Free-text candidate
   // (often one number, sometimes several like "10, 23") + notes. Session-only for now.
   wheelNotes = $state<{ candidate: string; notes: string }[]>([]);
+  // Shared Auto-Probe lock config, one per internal wheel index. The test wheel is
+  // selectedWheelIndex (left free/charted); others may be locked at a chosen position.
+  autoProbeLocks = $state<{ locked: boolean; pos: number }[]>([]);
 
   readonly profile: LockProfile;
   readonly difficultyRating: number;
@@ -34,6 +37,7 @@ export class GameStore {
     this.profile = profile;
     this.difficultyRating = this.game.difficultyRating;
     this.wheelNotes = Array.from({ length: profile.wheelCount }, () => ({ candidate: '', notes: '' }));
+    this.autoProbeLocks = Array.from({ length: profile.wheelCount }, () => ({ locked: false, pos: 0 }));
     this.sync();
   }
 
@@ -131,6 +135,17 @@ export class GameStore {
   }
   setNote(wheelIndex: number, value: string) {
     if (this.wheelNotes[wheelIndex]) this.wheelNotes[wheelIndex].notes = value;
+  }
+  // "Lock to Candidates": configure the Auto-Probe panel so the currently selected wheel is
+  // the free/test wheel and every OTHER wheel with a candidate is locked at that number (first
+  // value if several are listed). The user then runs auto-probe to chart the selected wheel
+  // with the known wheels held at their deduced gates.
+  lockToCandidates() {
+    this.autoProbeLocks = this.wheelNotes.map((note, i) => {
+      if (i === this.selectedWheelIndex) return { locked: false, pos: 0 };
+      const m = note.candidate.match(/-?\d+(?:\.\d+)?/);
+      return m ? { locked: true, pos: Number(m[0]) } : { locked: false, pos: 0 };
+    });
   }
   erase() {
     this.game.eraseProbeHistory();
