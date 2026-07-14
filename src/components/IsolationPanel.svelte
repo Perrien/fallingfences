@@ -85,7 +85,11 @@
     background: var(--panel);
   }
   .iso-head {
+    font-family: var(--font-typewriter);
     font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--text-secondary);
   }
   .wheels {

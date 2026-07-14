@@ -127,6 +127,9 @@
     letter-spacing: 0.08em;
     color: var(--text-secondary);
   }
+  .pane-head span {
+    font-family: var(--font-typewriter);
+  }
   .new {
     font-size: 0.72rem;
     font-weight: 700;
