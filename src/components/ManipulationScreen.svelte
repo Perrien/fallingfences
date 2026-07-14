@@ -10,12 +10,24 @@
 
   let { store, onExit }: { store: GameStore; onExit: () => void } = $props();
 
-  let showGates = $state(false); // debug aid
   let showLCP = $state(true);
   let showWidth = $state(false);
   let amplified = $state(false);
   let sheetDismissed = $state(false);
   let dialView = $state<'dial' | 'notes'>('dial'); // dial box ↔ candidate/notes toggle
+  let confirmReveal = $state(false);
+
+  // The combination becomes visible once the player reveals it OR the lock is cracked open.
+  const revealed = $derived(store.combinationRevealed || store.solvePhase === 'solved');
+  // Outermost-first, matching the wheel-position readout and the solve sheet.
+  const comboDisplay = $derived(
+    store.gatePositions.slice().reverse().map((g) => g.toFixed(0)).join(' – ')
+  );
+
+  function doReveal() {
+    store.revealCombination();
+    confirmReveal = false;
+  }
 
   // Wide (Mac/iPad): graph on top, dial + controls side-by-side below.
   // Narrow (iPhone): graph on top, tabbed Dial/Controls below.
@@ -72,11 +84,14 @@
   <div class="controls-pane">
     <IsolationPanel {store} />
 
-    <details class="debug" bind:open={showGates}>
-      <summary>Debug: show gate positions</summary>
-      <p>Gates: {store.gatePositions.slice().reverse().map((g) => g.toFixed(0)).join(' · ')}</p>
-      <button onclick={() => store.debugAlignToGates()}>Align wheels to gates</button>
-    </details>
+    {#if revealed}
+      <div class="combo-reveal">
+        <span class="combo-label">Combination</span>
+        <span class="combo-value">{comboDisplay}</span>
+      </div>
+    {:else}
+      <button class="reveal-btn" onclick={() => (confirmReveal = true)}>Reveal Combination</button>
+    {/if}
   </div>
 {/snippet}
 
@@ -158,6 +173,20 @@
     onNewLock={onExit}
     onClose={() => (sheetDismissed = true)}
   />
+{/if}
+
+{#if confirmReveal}
+  <div class="backdrop" role="presentation" onclick={() => (confirmReveal = false)}>
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="confirm-card" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+      <h3>Reveal the combination?</h3>
+      <p>This shows the answer for this lock. You won't be able to hide it again.</p>
+      <div class="confirm-actions">
+        <button class="ghost" onclick={() => (confirmReveal = false)}>Cancel</button>
+        <button class="danger" onclick={doReveal}>Reveal</button>
+      </div>
+    </div>
+  </div>
 {/if}
 
 <style>
@@ -341,13 +370,84 @@
     cursor: pointer;
     font-size: 0.95rem;
   }
-  .debug {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
+
+  /* Reveal Combination — button, then in-place combo readout. */
+  .reveal-btn {
     width: 100%;
     max-width: 460px;
+    background: var(--panel);
+    color: var(--text-secondary);
+    border: 1px solid var(--divider);
   }
-  .debug summary {
-    cursor: pointer;
+  .reveal-btn:hover {
+    color: var(--text);
+  }
+  .combo-reveal {
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border: 1px solid var(--divider);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+  .combo-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+  .combo-value {
+    font-family: ui-monospace, monospace;
+    font-size: 1.3rem;
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
+
+  /* Confirmation dialog (matches the SolveSheet modal tokens). */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 10;
+  }
+  .confirm-card {
+    width: min(92vw, 360px);
+    background: var(--card);
+    border: 1px solid var(--divider);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .confirm-card h3 {
+    margin: 0;
+    color: var(--text);
+  }
+  .confirm-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+  .confirm-actions button {
+    flex: 1;
+  }
+  .confirm-actions .danger {
+    background: var(--graph-rcp);
+    border-color: var(--graph-rcp);
+    color: #fff;
   }
 </style>

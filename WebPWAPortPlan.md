@@ -34,8 +34,15 @@
   dial is swept **clockwise through the contact-area centre with every wheel within gate tolerance**
   — dial it in and it drops. SolvePhase simplified to `manipulating | solved` (bolt-travel model
   removed).
-- **Next up:** debug-scaffolding cleanup (small), then **Phase 3 (progression)** or **Phase 4
-  (Ultra)** — user to choose. **91 tests green** at this stopping point.
+- **Reveal Combination + debug cleanup — DONE (2026-07-14).** Added a **Reveal Combination**
+  button below the auto-probe section (mirrors the app): tap → confirm dialog → button is replaced
+  in place by the combination readout (outermost-first). The combo also auto-appears once the lock
+  is solved. Backed by a now-reactive `combinationRevealed` flag + `revealCombination()` on the
+  store/engine. With reveal covering the "see the combo" need, the old dev debug scaffolding
+  (`show gate positions` / `Align wheels to gates`, `debugAlignToGates()`, `showGates`) was
+  **removed entirely**; the `gatePositions` getter stays (backs reveal + the solve sheet).
+- **Next up:** **Phase 3 (progression)** or **Phase 4 (Ultra)** — user to choose. **91 tests green**
+  at this stopping point.
 - **Priority note (user):** persistence is LOW priority — build all other functionality first;
   wire IndexedDB near the end. Multi-scan tracking on hold (Clear graph covers the need for now).
   Free-dialing precisely onto gates is the authentic hard part; a guided-dialing assist is a

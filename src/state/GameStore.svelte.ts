@@ -20,6 +20,7 @@ export class GameStore {
   ledFlashCounter = $state(0);
   solveScore = $state<SolveScoreResult | null>(null);
   efficiency = $state(0);
+  combinationRevealed = $state(false);
   selectedWheelIndex = $state(0);
   isolationTests = $state<WheelIsolationTest[]>([]);
   // Player annotations, one per internal wheel index (0 = cam-adjacent). Free-text candidate
@@ -47,7 +48,8 @@ export class GameStore {
   get wheelCount(): number {
     return this.profile.wheelCount;
   }
-  // Debug aid until the contact graph lands — the true gate positions.
+  // The true gate positions (internal cam-adjacent-first order). Backs the Reveal Combination
+  // feature and the solved-lock combo readout; reverse for outermost-first display.
   get gatePositions(): number[] {
     return this.game.session.combination.gatePositions;
   }
@@ -66,6 +68,7 @@ export class GameStore {
     this.wheelPositions = this.game.wheels.map((w) => w.currentPosition);
     this.ledFlashCounter = this.game.ledFlashCounter;
     this.selectedWheelIndex = this.game.selectedWheelIndex;
+    this.combinationRevealed = this.game.combinationRevealed;
     // Deep-ish clone so Svelte reacts to row/reading mutations inside the tests.
     this.isolationTests = this.game.isolationTests.map((t) => ({
       ...t,
@@ -151,9 +154,9 @@ export class GameStore {
     this.game.eraseProbeHistory();
     this.sync();
   }
-  // Debug aid: park every wheel on its gate so the solve loop can be exercised by hand.
-  debugAlignToGates() {
-    this.game.session.combination.gatePositions.forEach((g, i) => this.game.parkWheel(i, g));
+  // Permanently reveal the combination (disqualifies scoring, mirroring the app). Irreversible.
+  revealCombination() {
+    this.game.revealCombination();
     this.sync();
   }
 }
