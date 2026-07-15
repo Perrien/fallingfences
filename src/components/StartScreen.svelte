@@ -1,9 +1,13 @@
 <script lang="ts">
-  import { beginner, standard, advanced, expert, examination, randomSeed, type LockProfile } from '../models/LockProfile';
+  import { beginner, standard, advanced, expert, examination, ultra, randomSeed, type LockProfile } from '../models/LockProfile';
   import { makeRandom } from '../models/Combination';
   import { GameStore } from '../state/GameStore.svelte';
+  import { UltraGameStore } from '../state/UltraGameStore.svelte';
 
-  let { onStart }: { onStart: (s: GameStore) => void } = $props();
+  let {
+    onStart,
+    onStartUltra,
+  }: { onStart: (s: GameStore) => void; onStartUltra: (s: UltraGameStore) => void } = $props();
 
   const presets: { name: string; make: (seed?: bigint) => LockProfile; blurb: string }[] = [
     { name: 'Beginner', make: beginner, blurb: '3 wheels · wide gates · no false gates' },
@@ -24,6 +28,20 @@
     });
     onStart(new GameStore(profile, combination));
   }
+
+  // Ultra can't reuse the presets array (its make returns a plain profile too, but the
+  // store type differs), so it has its own entry point.
+  function startUltra() {
+    const profile = ultra(10, randomSeed());
+    const combination = makeRandom({
+      wheelCount: profile.wheelCount,
+      numberRange: profile.numberRange,
+      forbiddenCenter: profile.contactAreaCenter,
+      forbiddenHalfWidth: (15 / 360) * profile.numberRange,
+      seamBuffer: profile.gateSeamBuffer,
+    });
+    onStartUltra(new UltraGameStore(profile, combination));
+  }
 </script>
 
 <main>
@@ -36,6 +54,10 @@
         <span class="blurb">{p.blurb}</span>
       </button>
     {/each}
+    <button class="preset ultra" onclick={startUltra}>
+      <span class="name">Ultra</span>
+      <span class="blurb">10 wheels · analytical / graph reading</span>
+    </button>
   </div>
 </main>
 
@@ -80,6 +102,10 @@
   .preset:hover {
     border-color: var(--text-secondary);
     background: var(--chip);
+  }
+  .preset.ultra {
+    margin-top: 0.4rem;
+    border-color: var(--accent-blue, var(--text-secondary));
   }
   .name {
     font-size: 1.1rem;

@@ -304,6 +304,56 @@ PROFILES = [
      "combination": [15, 40, 65]},
 ]
 
+# ── Ultra tier profile (faithful to LockProfile.ultra) ───────────────────────
+# The base-height step draw is CONDITIONAL: rng.nextDoubleIn is called ONLY when
+# stepFloor < stepCap. Missing/adding that draw desyncs the whole profile stream.
+ULTRA_DIAG = []
+
+def ultra_profile(name, wheel_count, seed):
+    rng = SeededRNG(seed)
+    number_range = 100
+    gate_width = rng.next_double_in(1.5, 2.2)
+    surface_noise = rng.next_double_in(0.03, 0.05)
+    oval = rng.next_double_in(0.10, 0.50)
+    center = number_range / 2.0
+    safety_margin = 0.05
+    total_budget = max(0.0, 1.0 - oval - surface_noise - safety_margin)
+    denom = max(wheel_count - 1, 1)
+    abs_min, abs_max = 0.02, 0.08
+    step_cap = min(abs_max, 1.0 / denom, total_budget / denom)
+    step_floor = min(abs_min, step_cap)
+    base_heights = [1.0]
+    for _ in range(max(wheel_count - 1, 0)):
+        step = rng.next_double_in(step_floor, step_cap) if step_floor < step_cap else step_floor
+        base_heights.append(base_heights[-1] - step)
+    spread = 1.0 - base_heights[-1]
+    ULTRA_DIAG.append((name, seed, wheel_count, step_floor < step_cap))
+    return {
+        "seed": str(seed), "wheelCount": wheel_count, "numberRange": number_range,
+        "heightOrdering": {"kind": "random"}, "heightSpread": spread,
+        "baseHeightsByRank": base_heights,
+        "surfaceNoiseAmplitude": surface_noise, "measurementNoise": 0.04,
+        "noiseHarmonicFrequencyRange": [3.0, 10.0],
+        "ovalEccentricity": oval, "ovalFrequencyRange": [0.25, 2.0],
+        "ovalBumpPositionOverride": 0.0,
+        "gateWidth": gate_width, "gateSeamBuffer": gate_width,
+        "falseGateConfig": {"countRange": [1, 3], "depthRatioRange": [0.20, 0.55], "width": None,
+                            "distribution": {"kind": "halvingBase", "probability": 0.95}, "eligibleWheelIndices": None},
+        "contactAreaCenter": center, "contactAreaWidth": (30.0 / 360.0) * number_range,
+        "rcpSensitivity": 2.5, "lcpSensitivity": 1.0,
+    }
+
+def ultra_combination(n):
+    # Combination is crypto-seeded in-app → parity-free; any fixed valid set works.
+    return [5 + (i * 13) % 90 for i in range(n)]
+
+# Two seeds cover both branches of the conditional step draw:
+#   • wheelCount 10 → budget/9 > 0.02 → stepFloor < stepCap → DRAW branch
+#   • wheelCount 40 → step range collapses (stepFloor == stepCap) → NO-DRAW branch
+for _uname, _uwheels, _useed in [("ultra", 10, 424242), ("ultraTight", 40, 987654321)]:
+    PROFILES.append({"name": _uname, "profile": ultra_profile(_uname, _uwheels, _useed),
+                     "combination": ultra_combination(_uwheels)})
+
 def build_expected(entry):
     p = dict(entry["profile"])
     p["combination"] = entry["combination"]
@@ -343,3 +393,10 @@ print("  falseGate posns  =", [[fg["position"] for fg in w] for w in dp["falseGa
       "(expect [[79],[34,41] or [41,34],[3,12,28] in some order])")
 print("  heights @ pos 0  =", [round(float(w[0]), 4) for w in dp["heights"]["perWheel"]],
       "(expect ~[0.8502, 0.8807, 1.0114])")
+
+print("Ultra profiles (branch coverage — expect one DRAW and one NO-DRAW):")
+for _name, _seed, _wheels, _drew in ULTRA_DIAG:
+    _p = next(e["profile"] for e in PROFILES if e["name"] == _name)
+    print(f"  {_name} (seed {_seed}, {_wheels} wheels): step {'DRAW' if _drew else 'NO-DRAW'}; "
+          f"gateWidth={round(_p['gateWidth'], 6)}, noise={round(_p['surfaceNoiseAmplitude'], 6)}, "
+          f"oval={round(_p['ovalEccentricity'], 6)}, baseHeights[-1]={round(_p['baseHeightsByRank'][-1], 5)}")

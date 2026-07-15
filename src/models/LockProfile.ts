@@ -174,6 +174,63 @@ export function expert(seed: bigint = randomSeed()): LockProfile {
   });
 }
 
+// Ultra tier — analytical fence-height graph reading. Port of LockProfile.ultra.
+// RNG draw order is parity-critical; the base-height step draw is CONDITIONAL
+// (only drawn when stepFloor < stepCap) — replicate exactly in the oracle.
+export function ultra(wheelCount = 10, seed: bigint = randomSeed()): LockProfile {
+  const rng = new SeededRNG(seed);
+  const numberRange = 100;
+  const gateWidth = rng.nextDoubleIn(1.5, 2.2);
+  const surfaceNoise = rng.nextDoubleIn(0.03, 0.05);
+  const oval = rng.nextDoubleIn(0.1, 0.5);
+  const center = numberRange / 2.0;
+
+  // Per-wheel random spread within a budget that keeps the shortest wheel's
+  // surface (base + oval + noise) above 0. Each rank-step is uniform in
+  // [stepFloor, stepCap]; when the budget is tight the range collapses to a
+  // single value (no draw) rather than violating the floor.
+  const safetyMargin = 0.05;
+  const totalBudget = Math.max(0.0, 1.0 - oval - surfaceNoise - safetyMargin);
+  const denom = Math.max(wheelCount - 1, 1);
+  const absMin = 0.02;
+  const absMax = 0.08;
+  const stepCap = Math.min(absMax, 1.0 / denom, totalBudget / denom);
+  const stepFloor = Math.min(absMin, stepCap);
+  const baseHeights: number[] = [1.0];
+  for (let i = 0; i < Math.max(wheelCount - 1, 0); i++) {
+    const step = stepFloor < stepCap ? rng.nextDoubleIn(stepFloor, stepCap) : stepFloor;
+    baseHeights.push(baseHeights[baseHeights.length - 1] - step);
+  }
+  const spread = 1.0 - baseHeights[baseHeights.length - 1];
+
+  return base(seed, {
+    wheelCount,
+    numberRange,
+    heightOrdering: { kind: 'random' },
+    heightSpread: spread,
+    baseHeightsByRank: baseHeights,
+    surfaceNoiseAmplitude: surfaceNoise,
+    measurementNoise: 0.04,
+    noiseHarmonicFrequencyRange: [3.0, 10.0], // ⚠ base defaults [1.0, 5.0]
+    ovalEccentricity: oval,
+    ovalFrequencyRange: [0.25, 2.0],
+    ovalBumpPositionOverride: 0.0,
+    gateWidth,
+    gateSeamBuffer: gateWidth,
+    falseGateConfig: {
+      countRange: [1, 3],
+      depthRatioRange: [0.2, 0.55],
+      width: null,
+      distribution: { kind: 'halvingBase', probability: 0.95 },
+      eligibleWheelIndices: null,
+    },
+    contactAreaCenter: center,
+    contactAreaWidth: (30.0 / 360.0) * numberRange,
+    rcpSensitivity: 2.5,
+    lcpSensitivity: 1.0,
+  });
+}
+
 export function examination(seed: bigint = randomSeed()): LockProfile {
   // All parameters fixed (no RNG draws beyond wheel construction).
   return base(seed, {
