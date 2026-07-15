@@ -35,13 +35,12 @@
 
 <style>
   .strip {
-    flex: 1;
+    flex: 0 0 auto;
+    width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
-    gap: 0.35rem;
-    align-content: start;
-    overflow-y: auto;
-    min-width: 0;
+    /* Up to 2 rows of 15, spanning the full window width. */
+    grid-template-columns: repeat(15, 1fr);
+    gap: 0.3rem;
   }
   .wheel {
     position: relative;
@@ -49,8 +48,9 @@
     flex-direction: column;
     align-items: center;
     gap: 0.05rem;
-    padding: 0.35rem 0.2rem;
-    border-radius: 8px;
+    padding: 0.3rem 0.1rem;
+    min-width: 0;
+    border-radius: 7px;
     border: 1px solid var(--divider);
     background: var(--card);
     color: var(--text);
@@ -65,10 +65,13 @@
     opacity: 0.4;
   }
   .w {
-    font-size: 0.68rem;
+    font-size: 0.6rem;
+    line-height: 1;
     color: var(--text-secondary);
   }
   .p {
+    font-size: 0.85rem;
+    line-height: 1.1;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     font-family: var(--font-mono);

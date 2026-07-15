@@ -106,6 +106,19 @@ describe('UltraGameState.detectFlatWheels', () => {
     expect(flat.some((f) => f === false)).toBe(true); // dominant wheel visible
   });
 
+  it('flags a wheel flat only when its fence range is exactly 0 (fully masked)', () => {
+    // Regression: a wheel that pokes above the others by even a tiny (<0.5%) amount has a
+    // readable gate and must stay bright — the old percentage threshold hid it.
+    const s = makeState();
+    const flat = s.detectFlatWheels();
+    s.wheels.forEach((_, i) => {
+      const d = UltraProbeEngine.sweep(new Set([i]), s.wheels, s.profile);
+      const range = Math.max(...d) - Math.min(...d);
+      expect(flat[i]).toBe(range <= 1e-9);
+      if (!flat[i]) expect(range).toBeGreaterThan(0); // bright ⇒ genuinely moves the fence
+    });
+  });
+
   it('a wheel becomes not-flat once the others are parked on their gates (isolated)', () => {
     // Park every other wheel on its gate → those cut to ~0 → the target wheel dominates
     // and its full signal is visible → not flat.

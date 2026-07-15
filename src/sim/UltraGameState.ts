@@ -107,10 +107,13 @@ export class UltraGameState {
     this.setFlags[i] = !this.setFlags[i];
   }
 
-  // A wheel is "flat" (no usable signal) when its individual sweep range is < 0.5% of the
-  // static Y span. Depends only on wheelPositions. Returns true = flat (dim it).
+  // A wheel is "flat" (dimmed) only when it is FULLY masked — i.e. a taller wheel covers it
+  // at every dial position, so sweeping it never moves the fence and its range is exactly 0.
+  // Any wheel that pokes above the others even slightly has a readable gate and stays bright,
+  // so the one un-masked wheel is never hidden behind a percentage threshold. (The 1e-9 is a
+  // floating-point guard; a genuinely masked wheel's range is a hard 0.) Depends only on
+  // wheelPositions. Returns true = flat (dim it).
   detectFlatWheels(): boolean[] {
-    const ySpan = Math.max(1e-9, this.staticYHigh - this.staticYLow);
     return this.wheels.map((_, i) => {
       const data = UltraProbeEngine.sweep(new Set([i]), this.wheels, this.profile);
       let mn = Infinity;
@@ -119,8 +122,7 @@ export class UltraGameState {
         if (v < mn) mn = v;
         if (v > mx) mx = v;
       }
-      const range = mx - mn;
-      return range / ySpan < 0.005;
+      return mx - mn <= 1e-9;
     });
   }
 

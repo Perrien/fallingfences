@@ -5,7 +5,6 @@
   import type { UltraGameStore } from '../state/UltraGameStore.svelte';
   import UltraGraph from './UltraGraph.svelte';
   import WheelStrip from './WheelStrip.svelte';
-  import Thumbwheel from './Thumbwheel.svelte';
   import UltraSolveSheet from './UltraSolveSheet.svelte';
 
   let { store, onExit }: { store: UltraGameStore; onExit: () => void } = $props();
@@ -48,21 +47,20 @@
   </div>
 
   <div class="controls">
-    <WheelStrip
-      wheelPositions={store.wheelPositions}
-      setFlags={store.setFlags}
-      flatWheels={store.flatWheels}
-      primarySelected={store.primarySelected}
-      onSelect={(i) => store.select(i)}
-    />
-    <div class="right">
-      <button class="set" class:on={setActive} aria-pressed={setActive} onclick={() => store.toggleSet()}>
-        SET
-      </button>
-      <span class="fence">Fence: W{fenceWheel + 1}</span>
-      <Thumbwheel value={markerPosition} numberRange={store.numberRange} onChange={(v) => store.setPosition(v)} />
-    </div>
+    <button class="set" class:on={setActive} aria-pressed={setActive} onclick={() => store.toggleSet()}>
+      SET
+    </button>
+    <span class="fence">Fence: W{fenceWheel + 1}</span>
+    <span class="hint">W{store.primarySelected + 1} @ {markerPosition} · drag graph to move</span>
   </div>
+
+  <WheelStrip
+    wheelPositions={store.wheelPositions}
+    setFlags={store.setFlags}
+    flatWheels={store.flatWheels}
+    primarySelected={store.primarySelected}
+    onSelect={(i) => store.select(i)}
+  />
 
   {#if portrait && !hintDismissed}
     <button class="rotate-hint" onclick={() => (hintDismissed = true)}>
@@ -117,19 +115,11 @@
     flex: 0 0 auto;
     display: flex;
     gap: 0.8rem;
-    align-items: stretch;
-    max-height: 45vh;
-  }
-  .right {
-    flex: 0 0 auto;
-    width: min(30vw, 120px);
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.4rem;
+    align-items: center;
   }
   .set {
-    padding: 0.45rem;
+    flex: 0 0 auto;
+    padding: 0.4rem 1.1rem;
     border-radius: 8px;
     border: 1px solid var(--divider);
     background: var(--card);
@@ -144,7 +134,12 @@
     color: #06210f;
   }
   .fence {
-    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .hint {
+    margin-left: auto;
     font-size: 0.8rem;
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;

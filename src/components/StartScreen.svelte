@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { beginner, standard, advanced, expert, examination, ultra, randomSeed, type LockProfile } from '../models/LockProfile';
+  import { beginner, standard, advanced, expert, ultra, randomSeed, type LockProfile } from '../models/LockProfile';
   import { makeRandom } from '../models/Combination';
   import { GameStore } from '../state/GameStore.svelte';
   import { UltraGameStore } from '../state/UltraGameStore.svelte';
@@ -14,8 +14,11 @@
     { name: 'Standard', make: standard, blurb: '3–4 wheels · occasional false gate' },
     { name: 'Advanced', make: advanced, blurb: '3–5 wheels · tighter gates' },
     { name: 'Expert', make: expert, blurb: '4–5 wheels · frequent false gates' },
-    { name: 'Examination', make: examination, blurb: '5 wheels · the hardest dial lock' },
   ];
+
+  // Ultra wheel-count options; 15 is the default. Pick one, then hit Ultra to start.
+  const ultraSizes = [15, 20, 25, 30];
+  let ultraWheels = $state(15);
 
   function start(make: (seed?: bigint) => LockProfile) {
     const profile = make(randomSeed());
@@ -32,7 +35,7 @@
   // Ultra can't reuse the presets array (its make returns a plain profile too, but the
   // store type differs), so it has its own entry point.
   function startUltra() {
-    const profile = ultra(10, randomSeed());
+    const profile = ultra(ultraWheels, randomSeed());
     const combination = makeRandom({
       wheelCount: profile.wheelCount,
       numberRange: profile.numberRange,
@@ -56,8 +59,20 @@
     {/each}
     <button class="preset ultra" onclick={startUltra}>
       <span class="name">Ultra</span>
-      <span class="blurb">10 wheels · analytical / graph reading</span>
+      <span class="blurb">{ultraWheels} wheels · analytical / graph reading</span>
     </button>
+    <div class="ultra-sizes" role="group" aria-label="Ultra wheel count">
+      {#each ultraSizes as n}
+        <button
+          class="size"
+          class:active={n === ultraWheels}
+          aria-pressed={n === ultraWheels}
+          onclick={() => (ultraWheels = n)}
+        >
+          {n}
+        </button>
+      {/each}
+    </div>
   </div>
 </main>
 
@@ -106,6 +121,32 @@
   .preset.ultra {
     margin-top: 0.4rem;
     border-color: var(--accent-blue, var(--text-secondary));
+  }
+  .ultra-sizes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+  }
+  .size {
+    padding: 0.5rem 0;
+    border-radius: 10px;
+    border: 1px solid var(--divider);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .size:hover {
+    border-color: var(--text-secondary);
+    background: var(--chip);
+  }
+  .size.active {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue);
+    color: #fff;
   }
   .name {
     font-size: 1.1rem;
