@@ -17,6 +17,17 @@
     store.addIsolationTest(0, defaultControl(store.profile));
   }
 
+  // Tracks which "Set Candidate" actions have been confirmed, keyed so the confirmation
+  // clears itself automatically if the winner or test position later changes.
+  let confirmedKeys = $state(new Set<string>());
+  const candidateKey = (test: WheelIsolationTest, winner: number) =>
+    `${test.id}:${winner}:${test.testPosition}`;
+
+  function setCandidate(test: WheelIsolationTest, wc: number, winner: number) {
+    store.appendCandidate(wc - 1 - (winner - 2), fmt(test.testPosition));
+    confirmedKeys = new Set(confirmedKeys).add(candidateKey(test, winner));
+  }
+
   function commitPositions(t: WheelIsolationTest, tp: string, cp: string) {
     const tpn = Number(tp);
     const cpn = Number(cp);
@@ -95,12 +106,18 @@
           </div>
 
           {#if winner !== null}
+            {@const confirmed = confirmedKeys.has(candidateKey(test, winner))}
             <div class="card-foot">
               <button
                 class="setcand"
-                onclick={() => store.appendCandidate(wc - 1 - (winner - 2), fmt(test.testPosition))}
+                class:confirmed
+                onclick={() => setCandidate(test, wc, winner)}
               >
-                Set Candidate — {test.rows[winner].label}: {fmt(test.testPosition)}
+                {#if confirmed}
+                  ✓&nbsp;&nbsp;&nbsp;&nbsp;Candidate Set — {test.rows[winner].label}: {fmt(test.testPosition)}&nbsp;&nbsp;&nbsp;&nbsp;✓
+                {:else}
+                  Set Candidate — {test.rows[winner].label}: {fmt(test.testPosition)}
+                {/if}
               </button>
             </div>
           {/if}
@@ -270,5 +287,9 @@
     border-radius: 5px;
     padding: 0.35rem 0.6rem;
     cursor: pointer;
+  }
+  .setcand.confirmed {
+    color: #fff;
+    background: var(--solve);
   }
 </style>

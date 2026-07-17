@@ -60,10 +60,11 @@
         <option value={5}>5</option>
       </select>
     </label>
-    <div class="run-col">
-      <button class="clear" onclick={() => store.erase()}>Clear</button>
-      <button class="run" onclick={run}>Run auto-probe</button>
-    </div>
+  </div>
+
+  <div class="button-row">
+    <button class="run" onclick={run}>Run auto-probe</button>
+    <button class="clear" onclick={() => store.erase()}>Clear</button>
   </div>
 
   <p class="muted">
@@ -156,12 +157,11 @@
     border-radius: 6px;
     padding: 0.2rem 0.3rem;
   }
-  .run-col {
-    margin-left: auto;
+  .button-row {
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.35rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
   }
   .clear {
     padding: 0.35rem 0.8rem;

@@ -102,19 +102,14 @@
 {/snippet}
 
 <main>
-  <header>
-    <button class="link" onclick={onExit}>‹ Locks</button>
-    <div class="meta">
-      <span>Difficulty {String(store.difficultyRating).padStart(4, '0')}</span>
-      <span>{store.profile.wheelCount} wheels · dial {store.numberRange}</span>
-    </div>
-  </header>
-
   <div class="graph">
     <div class="graph-head">
-      <label><input type="checkbox" bind:checked={showLCP} /> LCP</label>
-      <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
-      <label><input type="checkbox" bind:checked={amplified} /> Amplify</label>
+      <button class="link" onclick={onExit}>‹ Locks</button>
+      <div class="graph-toggles">
+        <label><input type="checkbox" bind:checked={showLCP} /> LCP</label>
+        <label><input type="checkbox" bind:checked={showWidth} /> Width</label>
+        <label><input type="checkbox" bind:checked={amplified} /> Amplify</label>
+      </div>
     </div>
     {#if isWide}
       <ContactGraph
@@ -198,12 +193,6 @@
     gap: 1rem;
     padding: 1rem;
   }
-  header {
-    width: min(96vw, 1000px);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
   .link {
     background: none;
     border: none;
@@ -211,13 +200,6 @@
     font-size: 1rem;
     cursor: pointer;
     padding: 0;
-  }
-  .meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
   }
 
   /* Graph spans the top at all sizes. */
@@ -229,11 +211,16 @@
   }
   .graph-head {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     gap: 1rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
+  }
+  .graph-toggles {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
   .graph-head label {
     display: flex;
