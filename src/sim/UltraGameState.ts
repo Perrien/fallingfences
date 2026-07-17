@@ -31,10 +31,17 @@ export class UltraGameState {
     this.combination = combination;
     this.wheels = makeWheels(profile, combination);
     const n = this.wheels.length;
-    this.wheelPositions = new Array(n).fill(0);
+    // Web-build divergence from the Swift app (which starts every wheel at 0): give each
+    // wheel a random starting position so Ultra locks don't all open the same way. Not
+    // RNG-parity-tested — same non-determinism class as the noise generator (see README).
+    this.wheelPositions = new Array(n)
+      .fill(0)
+      .map(() => Math.floor(Math.random() * this.profile.numberRange));
     this.setFlags = new Array(n).fill(false);
     this.selectedIndices = new Set([0]);
-    // wheels[i].currentPosition already 0 from makeWheels — kept in lockstep henceforth.
+    // Keep wheels[i].currentPosition in lockstep with the randomized wheelPositions (mirrors
+    // the invariant the rest of this class relies on — see setPositionForSelection).
+    this.wheels.forEach((w, i) => (w.currentPosition = this.wheelPositions[i]));
     const fgCount = this.wheels.reduce((s, w) => s + w.falseGates.length, 0);
     this.difficultyRating = difficultyRating(profile, fgCount);
     this.computeStaticYBounds();

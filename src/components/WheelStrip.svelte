@@ -35,10 +35,9 @@
 
 <style>
   .strip {
-    flex: 0 0 auto;
-    width: 100%;
+    flex: 1 1 auto;
     display: grid;
-    /* Up to 2 rows of 15, spanning the full window width. */
+    /* Up to 2 rows of 15, spanning the full width next to the SET button. */
     grid-template-columns: repeat(15, 1fr);
     gap: 0.3rem;
   }
@@ -47,8 +46,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.05rem;
-    padding: 0.3rem 0.1rem;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.55rem 0.1rem;
     min-width: 0;
     border-radius: 7px;
     border: 1px solid var(--divider);

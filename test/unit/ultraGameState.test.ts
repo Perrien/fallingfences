@@ -98,9 +98,13 @@ describe('UltraGameState.detectFlatWheels', () => {
   });
 
   it('flags masked wheels flat and the dominant wheel not-flat (the isolation premise)', () => {
-    // At initial all-zero positions the tallest wheel masks the shorter ones: sweeping a
-    // masked wheel barely moves the fence (max) → flat; the dominant wheel's own dip shows.
+    // At all-zero positions the tallest wheel masks the shorter ones: sweeping a masked
+    // wheel barely moves the fence (max) → flat; the dominant wheel's own dip shows. Set
+    // positions explicitly rather than relying on the constructor default, which the web
+    // build now randomizes.
     const s = makeState();
+    s.wheelPositions = s.wheelPositions.map(() => 0);
+    s.wheels.forEach((w) => (w.currentPosition = 0));
     const flat = s.detectFlatWheels();
     expect(flat.some((f) => f === true)).toBe(true); // at least one masked
     expect(flat.some((f) => f === false)).toBe(true); // dominant wheel visible

@@ -12,7 +12,6 @@
   let sheetDismissed = $state(false);
 
   const markerPosition = $derived(store.wheelPositions[store.primarySelected] ?? 0);
-  const fenceWheel = $derived(store.fenceIndex(markerPosition));
   const setActive = $derived(store.setFlags[store.primarySelected] ?? false);
 
   // Non-blocking rotate hint on narrow portrait screens.
@@ -46,21 +45,18 @@
     />
   </div>
 
-  <div class="controls">
+  <div class="lower">
+    <WheelStrip
+      wheelPositions={store.wheelPositions}
+      setFlags={store.setFlags}
+      flatWheels={store.flatWheels}
+      primarySelected={store.primarySelected}
+      onSelect={(i) => store.select(i)}
+    />
     <button class="set" class:on={setActive} aria-pressed={setActive} onclick={() => store.toggleSet()}>
       SET
     </button>
-    <span class="fence">Fence: W{fenceWheel + 1}</span>
-    <span class="hint">W{store.primarySelected + 1} @ {markerPosition} · drag graph to move</span>
   </div>
-
-  <WheelStrip
-    wheelPositions={store.wheelPositions}
-    setFlags={store.setFlags}
-    flatWheels={store.flatWheels}
-    primarySelected={store.primarySelected}
-    onSelect={(i) => store.select(i)}
-  />
 
   {#if portrait && !hintDismissed}
     <button class="rotate-hint" onclick={() => (hintDismissed = true)}>
@@ -111,38 +107,34 @@
     flex: 1 1 auto;
     min-height: 0;
   }
-  .controls {
+  /* Wheel strip + SET button share one row below the graph — SET stretches to match
+     whatever height the strip naturally takes (its own height grew a bit — see
+     WheelStrip's .wheel padding — now that the old controls row above it is gone). */
+  .lower {
     flex: 0 0 auto;
     display: flex;
-    gap: 0.8rem;
-    align-items: center;
+    gap: 0.5rem;
+    align-items: stretch;
   }
   .set {
     flex: 0 0 auto;
-    padding: 0.4rem 1.1rem;
-    border-radius: 8px;
+    width: 4.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
     border: 1px solid var(--divider);
     background: var(--card);
     color: var(--text);
     cursor: pointer;
     font-weight: 700;
+    font-size: 1rem;
     letter-spacing: 0.08em;
   }
   .set.on {
     background: #2fbf5f;
     border-color: #2fbf5f;
     color: #06210f;
-  }
-  .fence {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-  }
-  .hint {
-    margin-left: auto;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
   }
   .rotate-hint {
     position: fixed;

@@ -57,6 +57,7 @@
         <span class="blurb">{p.blurb}</span>
       </button>
     {/each}
+    <hr class="divider" />
     <button class="preset ultra" onclick={startUltra}>
       <span class="name">Ultra</span>
       <span class="blurb">{ultraWheels} wheels · analytical / graph reading</span>
@@ -119,8 +120,14 @@
     background: var(--chip);
   }
   .preset.ultra {
-    margin-top: 0.4rem;
     border-color: var(--accent-blue, var(--text-secondary));
+  }
+  .divider {
+    width: 100%;
+    height: 0;
+    margin: 0.6rem 0;
+    border: none;
+    border-top: 1px solid var(--divider);
   }
   .ultra-sizes {
     display: grid;
