@@ -65,6 +65,7 @@
     justify-content: center;
     padding: 1rem;
     z-index: 10;
+    animation: backdrop-in 0.25s ease both;
   }
   .card {
     width: min(92vw, 380px);
@@ -76,6 +77,22 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    animation: sheet-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+  @keyframes backdrop-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
   }
   .crest {
     width: 48px;

@@ -4,6 +4,7 @@
   // no zoom/pan (dropped per the Ultra plan; the thumbwheel gives exact integer steps).
   import { cssVar } from '../render/theme';
   import { gateMarkers, xAxisLabels, scrubIndexDelta } from '../render/ultraGraphModel';
+  import SparkBurst from './SparkBurst.svelte';
 
   let {
     sweepData,
@@ -11,6 +12,7 @@
     staticYLow,
     staticYHigh,
     markerPosition,
+    solved = false,
     onScrub,
   }: {
     sweepData: number[];
@@ -18,6 +20,7 @@
     staticYLow: number;
     staticYHigh: number;
     markerPosition: number;
+    solved?: boolean;
     // Optional 1-finger drag-to-scrub: emits a new (unwrapped) dial position for the
     // selected wheel. The caller wraps/clamps (store.setPosition). Purely additive — the
     // thumbwheel remains the primary control.
@@ -46,6 +49,32 @@
     // Track reactive inputs so the graph redraws on data / size / marker change.
     draw(sweepData, cssW, cssH, staticYLow, staticYHigh, markerPosition);
   });
+
+  // Solve celebration — fires once on the rising edge of `solved`, from the just-solved
+  // gate's position (the selected wheel's marker, frozen at the moment it fires — matches
+  // the app's Ultra spark, which originates from the graph gate rather than a UI button).
+  // 0.7s burst (matches the app); the caller delays the solve sheet by the same amount so
+  // the burst is visible before it's covered.
+  let sparkActive = $state(false);
+  let frozenMarker = $state(0);
+  let prevSolved = false;
+  $effect(() => {
+    if (solved && !prevSolved) {
+      frozenMarker = markerPosition;
+      sparkActive = true;
+    }
+    prevSolved = solved;
+  });
+
+  const sparkOriginXPct = $derived.by(() => {
+    if (cssW === 0) return 50;
+    const lastIdx = Math.max(1, numberRange - 1);
+    const plotW = Math.max(1, cssW - PLOT.left - PLOT.right);
+    const x = PLOT.left + (frozenMarker / lastIdx) * plotW;
+    return (x / cssW) * 100;
+  });
+  const sparkOriginYPct = $derived.by(() => (cssH > 0 ? (PLOT.top / cssH) * 100 : 10));
+  const sparkDiameter = $derived(Math.max(20, cssH - PLOT.top - PLOT.bottom));
 
   // ── 1-finger drag-to-scrub (relative, velocity-scaled) ─────────────────────
   // Single pointer only; extra fingers are ignored (no pinch/pan/zoom, per plan).
@@ -231,10 +260,19 @@
     onpointerup={scrubUp}
     onpointercancel={scrubUp}
   ></canvas>
+  <SparkBurst
+    active={sparkActive}
+    originXPct={sparkOriginXPct}
+    originYPct={sparkOriginYPct}
+    diameter={sparkDiameter}
+    durationMs={700}
+    onDone={() => (sparkActive = false)}
+  />
 </div>
 
 <style>
   .graph-wrap {
+    position: relative;
     width: 100%;
     height: 100%;
     min-height: 0;

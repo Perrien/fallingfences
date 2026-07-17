@@ -14,6 +14,16 @@
   const markerPosition = $derived(store.wheelPositions[store.primarySelected] ?? 0);
   const setActive = $derived(store.setFlags[store.primarySelected] ?? false);
 
+  // Delay the solve sheet by the same 0.7s as the graph's spark burst (see UltraGraph),
+  // so the celebration is visible before the sheet covers it — matches the app's
+  // triggerSolve() gap between the burst and UltraSolveSheetView.
+  let sheetReady = $state(false);
+  let prevSolved = false;
+  $effect(() => {
+    if (store.solved && !prevSolved) setTimeout(() => (sheetReady = true), 700);
+    prevSolved = store.solved;
+  });
+
   // Non-blocking rotate hint on narrow portrait screens.
   let portrait = $state(false);
   $effect(() => {
@@ -41,6 +51,7 @@
       staticYLow={store.staticYLow}
       staticYHigh={store.staticYHigh}
       {markerPosition}
+      solved={store.solved}
       onScrub={(v) => store.setPosition(v)}
     />
   </div>
@@ -65,7 +76,7 @@
   {/if}
 </main>
 
-{#if store.solveScore !== null && !sheetDismissed}
+{#if store.solveScore !== null && sheetReady && !sheetDismissed}
   <UltraSolveSheet
     score={store.solveScore}
     wheelCount={store.wheelCount}

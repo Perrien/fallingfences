@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cssVar } from '../render/theme';
+  import SparkBurst from './SparkBurst.svelte';
 
   // Rotating-ring dial, ported from the app's DialRingView: the numbered ring + knurled
   // knob rotate under a fixed reference triangle at 12 o'clock. The dark centre knob is the
@@ -55,6 +56,15 @@
     });
     ro.observe(wrapEl);
     return () => ro.disconnect();
+  });
+
+  // Solve celebration — fires once on the rising edge of `solved` (matches the app's
+  // 5s spark burst, centered on the dial).
+  let sparkActive = $state(false);
+  let prevSolved = false;
+  $effect(() => {
+    if (solved && !prevSolved) sparkActive = true;
+    prevSolved = solved;
   });
 
   $effect(() => {
@@ -315,10 +325,12 @@
     onpointerup={up}
     onpointercancel={up}
   ></canvas>
+  <SparkBurst active={sparkActive} diameter={size} durationMs={5000} onDone={() => (sparkActive = false)} />
 </div>
 
 <style>
   .dial-wrap {
+    position: relative;
     width: min(80vw, 360px);
     aspect-ratio: 1 / 1;
   }

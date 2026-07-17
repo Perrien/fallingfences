@@ -82,7 +82,6 @@ export class GameState {
   // `velocity` is the dial speed in increments/second (from the input layer); auto-read on
   // sweep only fires when the smoothed speed is below velocityThreshold, so fast passes don't read.
   rotate(delta: number, velocity = 0): void {
-    if (this.solvePhase === 'solved' && delta < 0) return;
     this.smoothedVelocity =
       (1.0 - VELOCITY_SMOOTHING) * this.smoothedVelocity + VELOCITY_SMOOTHING * velocity;
     const range = this.profile.numberRange;
@@ -91,9 +90,19 @@ export class GameState {
     let remaining = Math.abs(delta);
     while (remaining > 0.0) {
       const stepMagnitude = Math.min(remaining, maxStep);
-      this.applyRotationStep(stepMagnitude * sign, range);
+      const stepDelta = stepMagnitude * sign;
+
+      // Soft mechanical stop: while still freshly solved with the gates aligned, don't let a
+      // clockwise sweep swing the dial straight back out through the dialed-in position.
+      // The moment the wheels move off their gates, applyRotationStep below reverts
+      // solvePhase to 'manipulating', so this condition stops applying on its own — no
+      // separate "lifted" flag needed, and the player can dial it in and re-solve freely.
+      if (this.solvePhase === 'solved' && sign < 0 && this.wouldExitContactAreaClockwise(stepDelta, range)) {
+        break;
+      }
+
+      this.applyRotationStep(stepDelta, range);
       remaining -= stepMagnitude;
-      if (this.solvePhase === 'solved' && sign < 0) break;
     }
     const newlyCoupled = [...this.positionEngine.coupledIndices].filter((i) => !this.lastCoupledIndices.has(i));
     if (newlyCoupled.length > 0) this.ledFlashCounter += 1;
@@ -106,6 +115,12 @@ export class GameState {
     this.syncWheelPositions();
     if (this.autoReadingEnabled) this.checkContactAreaCrossing(range, delta);
     this.checkSolvePhase(delta, range);
+    // A solved lock un-solves the moment the wheels are moved off their gates — this lifts
+    // the post-solve clockwise stop above and lets the player dial it in again for a fresh
+    // solve (and a fresh spark burst) instead of being permanently "done".
+    if (this.solvePhase === 'solved' && !this.gatesAligned(range)) {
+      this.solvePhase = 'manipulating';
+    }
   }
 
   // --- Probe triggers ---
@@ -382,18 +397,43 @@ export class GameState {
     );
   }
 
+  // True when every wheel sits within its gate tolerance of its true gate position.
+  private gatesAligned(range: number): boolean {
+    const p = this.profile;
+    return this.wheels.every(
+      (w) => AngleNormalizer.circularDistance(w.currentPosition, w.gatePosition, range) <= p.gateWidth / 2.0,
+    );
+  }
+
+  // Inside the configured contact area (same reference frame checkSolvePhase uses to decide
+  // whether a sweep "crossed" it — the physically-derived probe() lcp/rcp is a related but
+  // distinct notion and can disagree with this window depending on sensitivity tuning).
+  // Boundary-inclusive with a small epsilon: rotation is chunked into contactAreaWidth/2
+  // sub-steps, so landing exactly on the edge (half a step from center) is the expected case,
+  // not a rare coincidence — a strict `<=` can reject it by a sub-ulp float error and wedge
+  // the dial at the edge forever.
+  private isInsideContactArea(pos: number, range: number): boolean {
+    const p = this.profile;
+    return AngleNormalizer.circularDistance(pos, p.contactAreaCenter, range) <= p.contactAreaWidth / 2.0 + 1e-9;
+  }
+
+  // Would this clockwise step take the dial from inside the contact area to outside it? Only
+  // meaningful while already inside — used to soft-stop the dial right at the edge instead of
+  // letting it swing straight back out post-solve.
+  private wouldExitContactAreaClockwise(stepDelta: number, range: number): boolean {
+    if (!this.isInsideContactArea(this.dialPosition, range)) return false;
+    const newPos = AngleNormalizer.normalizePosition(this.dialPosition + stepDelta, range);
+    return !this.isInsideContactArea(newPos, range);
+  }
+
   // The lock opens when the dial sweeps clockwise (delta < 0) across the contact-area center
   // while every wheel is within its gate tolerance — the tactile "dial it in and it opens".
   private checkSolvePhase(delta: number, range: number): void {
     if (this.solvePhase === 'solved') return;
     if (delta >= 0) return; // only a clockwise (decreasing) sweep opens it
+    if (!this.gatesAligned(range)) return;
 
     const p = this.profile;
-    const gatesAligned = this.wheels.every(
-      (w) => AngleNormalizer.circularDistance(w.currentPosition, w.gatePosition, range) <= p.gateWidth / 2.0,
-    );
-    if (!gatesAligned) return;
-
     // Did this step cross the contact-area center? Compare center-relative signed offsets
     // before and after the step; a sign change (or landing on it) with a small gap = a crossing.
     const prev = AngleNormalizer.normalizePosition(this.dialPosition - delta, range);

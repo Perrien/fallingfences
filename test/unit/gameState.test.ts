@@ -106,6 +106,75 @@ describe('GameState', () => {
     expect(g.session.probeHistory.length).toBe(6);
   });
 
+  it('after solving, clockwise rotation is soft-stopped at the contact-area edge, not blocked outright', () => {
+    const g = new GameState(testProfile(), combo);
+    g.parkWheel(0, 10);
+    g.parkWheel(1, 20);
+    g.parkWheel(2, 30);
+    // Land exactly on the contact-area center (20) in one small sub-step, so solving doesn't
+    // itself carry the dial any further — isolates what a *subsequent* clockwise rotate does.
+    g.rotate(21.2);
+    g.rotate(-1.2);
+    expect(g.solvePhase).toBe('solved');
+    expect(g.dialPosition).toBeCloseTo(20, 6);
+
+    // The old bug: ANY further delta < 0 was a total no-op. A small further clockwise nudge
+    // that stays within the contact area should still move the dial.
+    g.rotate(-1);
+    expect(g.dialPosition).toBeCloseTo(19, 6);
+
+    // But a further nudge that would take it outside the contact area (gates still aligned)
+    // must be soft-stopped right there, not allowed to sail on through.
+    g.rotate(-1);
+    expect(g.dialPosition).toBeCloseTo(19, 6);
+  });
+
+  it('un-solves (reverts to manipulating) the moment the wheels move off their gates, restoring normal rotation', () => {
+    const g = new GameState(testProfile(), combo);
+    g.parkWheel(0, 10);
+    g.parkWheel(1, 20);
+    g.parkWheel(2, 30);
+    g.rotate(30);
+    g.rotate(-15); // solved, gates aligned
+    expect(g.solvePhase).toBe('solved');
+
+    // Unpark so a rotate can actually move the wheels, then explore counter-clockwise far
+    // enough to move them off their gates.
+    g.unparkAll();
+    g.rotate(200); // scrambles wheel positions well off their gates
+    expect(g.solvePhase).toBe('manipulating');
+
+    // Now clockwise rotation should behave normally (move freely), not be capped at the
+    // contact-area edge.
+    const before = g.dialPosition;
+    g.rotate(-25);
+    expect(g.dialPosition).not.toBe(before);
+  });
+
+  it('can be solved again after exploring away and dialing back onto the gates', () => {
+    const g = new GameState(testProfile(), combo);
+    g.parkWheel(0, 10);
+    g.parkWheel(1, 20);
+    g.parkWheel(2, 30);
+    g.rotate(30);
+    g.rotate(-15); // first solve
+    expect(g.solvePhase).toBe('solved');
+
+    // Move wheel 0 off its gate (still parked, just at a different position) — deterministic,
+    // dial-position-independent stand-in for "explore away". A tiny rotate is needed to
+    // actually run the reversion check (parking alone doesn't trigger it).
+    g.parkWheel(0, 15);
+    g.rotate(0.001);
+    expect(g.solvePhase).toBe('manipulating');
+
+    // Park it back on its gate and dial clockwise through the contact-area center again.
+    g.parkWheel(0, 10);
+    g.rotate(10); // back above the center, comfortably clear of it
+    g.rotate(-15); // sweep CW through it again
+    expect(g.solvePhase).toBe('solved');
+    expect(g.session.solvedAt).not.toBeNull();
+  });
+
   it('autoProbe isolates the free wheel and restores the others', () => {
     const g = new GameState(testProfile(), combo);
     g.measurementNoiseEnabled = false;
